@@ -216,7 +216,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
                   <select
                     name="sort"
                     defaultValue={sort}
-                    onChange="this.form.submit()"
+
                     className="border border-gray-300 rounded px-2 py-1.5 text-xs focus:outline-none focus:border-[#E4007F]"
                   >
                     <option value="review_count">人気順</option>
