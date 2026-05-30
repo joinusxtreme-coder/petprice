@@ -38,17 +38,12 @@ async function main() {
     try {
       const items = await searchProducts(keyword);
       console.log(`  Got ${items.length} items`);
-      if (items.length > 0) {
-        const sample = items[0];
-        console.log(`  Sample mediumImageUrls:`, JSON.stringify(sample.mediumImageUrls));
-        console.log(`  Sample itemCode:`, sample.itemCode);
-      }
-
       for (const item of items) {
         const petType = detectPetType(item.itemName);
         const ageGroup = detectAgeGroup(item.itemName);
         const category = detectCategory(keyword, item.itemName);
-        const imageUrl = item.mediumImageUrls?.[0] || null;
+        const rawImageUrl = item.mediumImageUrls?.[0] || null;
+        const imageUrl = rawImageUrl ? rawImageUrl.replace('_ex=128x128', '_ex=400x400') : null;
 
         const productData = {
           rakuten_item_id: item.itemCode,
