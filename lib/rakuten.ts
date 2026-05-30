@@ -1,4 +1,5 @@
-const RAKUTEN_API_ENDPOINT = 'https://app.rakuten.co.jp/services/api/IchibaItem/Search/20170706';
+// 2026年5月以降の新エンドポイント
+const RAKUTEN_API_ENDPOINT = 'https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20220601';
 
 export interface RakutenItem {
   itemCode: string;
@@ -24,6 +25,7 @@ export interface RakutenSearchResponse {
 export async function searchProducts(keyword: string): Promise<RakutenItem[]> {
   const params = new URLSearchParams({
     applicationId: process.env.RAKUTEN_APP_ID!,
+    accessKey: process.env.RAKUTEN_ACCESS_KEY!,
     affiliateId: process.env.RAKUTEN_AFFILIATE_ID!,
     keyword,
     hits: '30',
@@ -32,8 +34,16 @@ export async function searchProducts(keyword: string): Promise<RakutenItem[]> {
     genreId: '101213',
   });
 
-  const res = await fetch(`${RAKUTEN_API_ENDPOINT}?${params}`);
-  if (!res.ok) throw new Error(`Rakuten API error: ${res.status}`);
+  const res = await fetch(`${RAKUTEN_API_ENDPOINT}?${params}`, {
+    headers: {
+      'Referer': 'https://petprice.jp',
+      'Origin': 'https://petprice.jp',
+    },
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Rakuten API error: ${res.status} ${body}`);
+  }
 
   const data = await res.json();
   return data.Items || [];
