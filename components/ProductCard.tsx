@@ -13,61 +13,100 @@ interface Product {
 
 interface ProductCardProps {
   product: Product;
+  rank?: number;
 }
 
-function PriceBadge({ current, prev }: { current: number; prev?: number }) {
-  if (!prev) return null;
-  const diff = current - prev;
-  if (diff === 0) return null;
-  const isDown = diff < 0;
-  return (
-    <span
-      className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-        isDown ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'
-      }`}
-    >
-      {isDown ? '▼' : '▲'}
-      {Math.abs(diff).toLocaleString()}円
-    </span>
-  );
-}
+const RANK_COLORS: Record<number, string> = {
+  1: 'bg-yellow-400 text-white',
+  2: 'bg-gray-400 text-white',
+  3: 'bg-orange-500 text-white',
+};
 
 function StarRating({ average, count }: { average: number; count: number }) {
-  const stars = Math.round(average);
+  const full = Math.floor(average);
+  const half = average - full >= 0.5;
   return (
-    <div className="flex items-center gap-1 text-sm text-gray-600">
-      <span className="text-yellow-400">{'★'.repeat(stars)}{'☆'.repeat(5 - stars)}</span>
-      <span>({count.toLocaleString()}件)</span>
+    <div className="flex items-center gap-1">
+      <div className="flex text-yellow-400 text-xs">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <span key={i}>{i <= full ? '★' : i === full + 1 && half ? '⯨' : '☆'}</span>
+        ))}
+      </div>
+      <span className="text-xs text-gray-500">
+        ({count >= 1000 ? `${(count / 1000).toFixed(1)}k` : count})
+      </span>
     </div>
   );
 }
 
-export default function ProductCard({ product }: ProductCardProps) {
+export default function ProductCard({ product, rank }: ProductCardProps) {
+  const discountRate =
+    product.prev_price && product.prev_price > product.current_price
+      ? Math.round((1 - product.current_price / product.prev_price) * 100)
+      : null;
+
   return (
-    <Link href={`/product/${product.id}`} className="block bg-white rounded-xl shadow hover:shadow-md transition-shadow overflow-hidden">
-      <div className="relative aspect-square bg-gray-100">
+    <Link
+      href={`/product/${product.id}`}
+      className="group block bg-white rounded-xl overflow-hidden shadow hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5"
+    >
+      {/* Image */}
+      <div className="relative aspect-square bg-gray-50 overflow-hidden">
         {product.image_url ? (
           <Image
             src={product.image_url}
             alt={product.name}
             fill
-            className="object-contain p-2"
-            sizes="(max-width: 768px) 50vw, 33vw"
+            className="object-contain p-2 group-hover:scale-105 transition-transform duration-200"
+            sizes="(max-width: 768px) 50vw, 25vw"
           />
         ) : (
-          <div className="flex items-center justify-center h-full text-gray-400 text-4xl">🐾</div>
+          <div className="flex items-center justify-center h-full text-gray-300 text-5xl">🐾</div>
+        )}
+
+        {/* Rank badge */}
+        {rank && (
+          <div
+            className={`absolute top-2 left-2 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shadow ${
+              RANK_COLORS[rank] || 'bg-[#2E4057] text-white'
+            }`}
+          >
+            {rank}
+          </div>
+        )}
+
+        {/* Discount badge */}
+        {discountRate && discountRate >= 5 && (
+          <div className="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded">
+            -{discountRate}%
+          </div>
+        )}
+
+        {/* Popular badge */}
+        {!rank && !discountRate && product.review_count >= 10000 && (
+          <div className="absolute top-2 right-2 bg-[#FF6B35] text-white text-xs font-bold px-1.5 py-0.5 rounded">
+            人気
+          </div>
         )}
       </div>
-      <div className="p-3 space-y-2">
-        <p className="text-sm text-[#333333] font-medium line-clamp-2">{product.name}</p>
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-lg font-bold text-red-600">¥{product.current_price.toLocaleString()}</span>
-          <PriceBadge current={product.current_price} prev={product.prev_price} />
+
+      {/* Info */}
+      <div className="p-3 space-y-1.5">
+        <p className="text-xs text-gray-700 font-medium line-clamp-2 leading-snug">{product.name}</p>
+
+        <div className="space-y-0.5">
+          {product.prev_price && product.prev_price > product.current_price && (
+            <p className="text-xs text-gray-400 line-through">¥{product.prev_price.toLocaleString()}</p>
+          )}
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-base font-bold text-red-600">¥{product.current_price.toLocaleString()}</span>
+            {discountRate && discountRate >= 5 && (
+              <span className="text-xs text-red-500 font-semibold">{discountRate}%OFF</span>
+            )}
+          </div>
         </div>
+
         <StarRating average={product.review_average} count={product.review_count} />
-        <div className="pt-1">
-          <span className="inline-block text-xs bg-[#2E4057] text-white px-3 py-1 rounded-full">詳細を見る</span>
-        </div>
       </div>
     </Link>
   );

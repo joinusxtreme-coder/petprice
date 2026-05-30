@@ -22,13 +22,14 @@ export interface RakutenSearchResponse {
   pageCount: number;
 }
 
-export async function searchProducts(keyword: string): Promise<RakutenItem[]> {
+export async function searchProducts(keyword: string, page = 1): Promise<RakutenItem[]> {
   const params = new URLSearchParams({
     applicationId: process.env.RAKUTEN_APP_ID!,
     accessKey: process.env.RAKUTEN_ACCESS_KEY!,
     affiliateId: process.env.RAKUTEN_AFFILIATE_ID!,
     keyword,
     hits: '30',
+    page: String(page),
     sort: '-reviewCount',
     formatVersion: '2',
     genreId: '101213',
