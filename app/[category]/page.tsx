@@ -3,14 +3,40 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import ProductCard from '@/components/ProductCard';
 
-const CATEGORY_CONFIG: Record<string, { label: string; petType: string; dbCategory: string }> = {
-  'dog-food': { label: 'ドッグフード', petType: 'dog', dbCategory: 'dog-food' },
-  'cat-food': { label: 'キャットフード', petType: 'cat', dbCategory: 'cat-food' },
-  'dog-goods': { label: '犬用品', petType: 'dog', dbCategory: 'dog-goods' },
-  'cat-goods': { label: '猫用品', petType: 'cat', dbCategory: 'cat-goods' },
+export const CATEGORY_CONFIG: Record<string, { label: string; icon: string; petType: string; dbCategory: string; group: string }> = {
+  // 犬
+  'dog-food':   { label: 'ドッグフード',     icon: '🐕', petType: 'dog', dbCategory: 'dog-food',   group: '犬' },
+  'dog-snack':  { label: '犬のおやつ',       icon: '🦴', petType: 'dog', dbCategory: 'dog-snack',  group: '犬' },
+  'dog-walk':   { label: 'お散歩用品',       icon: '🐕‍🦺', petType: 'dog', dbCategory: 'dog-walk',   group: '犬' },
+  'dog-care':   { label: '犬のケア用品',     icon: '🛁', petType: 'dog', dbCategory: 'dog-care',   group: '犬' },
+  'dog-goods':  { label: '犬用品',           icon: '🏠', petType: 'dog', dbCategory: 'dog-goods',  group: '犬' },
+  // 猫
+  'cat-food':   { label: 'キャットフード',   icon: '🐈', petType: 'cat', dbCategory: 'cat-food',   group: '猫' },
+  'cat-snack':  { label: '猫のおやつ',       icon: '🐟', petType: 'cat', dbCategory: 'cat-snack',  group: '猫' },
+  'cat-toilet': { label: 'トイレ・猫砂',     icon: '🪣', petType: 'cat', dbCategory: 'cat-toilet', group: '猫' },
+  'cat-tower':  { label: 'キャットタワー',   icon: '🏰', petType: 'cat', dbCategory: 'cat-tower',  group: '猫' },
+  'cat-care':   { label: '猫のケア用品',     icon: '✂️', petType: 'cat', dbCategory: 'cat-care',   group: '猫' },
+  'cat-goods':  { label: '猫用品',           icon: '🧶', petType: 'cat', dbCategory: 'cat-goods',  group: '猫' },
+  // 共通
+  'pet-sheets': { label: 'ペットシーツ',     icon: '📄', petType: 'other', dbCategory: 'pet-sheets', group: 'その他' },
 };
 
-const PAGE_SIZE = 20;
+export const CATEGORY_GROUPS = [
+  {
+    label: '🐕 犬',
+    items: ['dog-food', 'dog-snack', 'dog-walk', 'dog-care', 'dog-goods'],
+  },
+  {
+    label: '🐈 猫',
+    items: ['cat-food', 'cat-snack', 'cat-toilet', 'cat-tower', 'cat-care', 'cat-goods'],
+  },
+  {
+    label: '🏠 共通',
+    items: ['pet-sheets'],
+  },
+];
+
+const PAGE_SIZE = 24;
 
 interface PageProps {
   params: Promise<{ category: string }>;
@@ -70,17 +96,55 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
 
   return (
     <div className="min-h-screen bg-[#F8F9FA]">
+      {/* Header */}
       <header className="bg-white shadow-sm sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-4">
-          <Link href="/" className="text-2xl font-bold text-[#FF6B35] shrink-0">ペットプライス🐾</Link>
-          <form action="/search" className="flex-1 max-w-md">
-            <input name="q" placeholder="商品名を検索..." className="w-full border border-gray-300 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF6B35]" />
+          <Link href="/" className="text-xl font-bold text-[#FF6B35] shrink-0">ペットプライス🐾</Link>
+          <form action="/search" className="flex-1 max-w-xl">
+            <div className="flex">
+              <input name="q" placeholder="商品名・ブランドで検索..." className="flex-1 border border-gray-300 rounded-l-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF6B35]" />
+              <button type="submit" className="bg-[#FF6B35] text-white px-4 py-2 rounded-r-full text-sm font-medium">検索</button>
+            </div>
           </form>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold text-[#2E4057] mb-6">{config.label}</h1>
+      {/* Category nav bar */}
+      <div className="bg-white border-b overflow-x-auto">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="flex gap-0">
+            {CATEGORY_GROUPS.map((group) => (
+              <div key={group.label} className="flex items-center">
+                <span className="text-xs text-gray-400 px-3 py-3 whitespace-nowrap border-r">{group.label}</span>
+                {group.items.map((key) => {
+                  const c = CATEGORY_CONFIG[key];
+                  return (
+                    <Link
+                      key={key}
+                      href={`/${key}`}
+                      className={`text-xs px-3 py-3 whitespace-nowrap hover:text-[#FF6B35] hover:bg-orange-50 transition-colors ${
+                        key === category ? 'text-[#FF6B35] font-bold border-b-2 border-[#FF6B35]' : 'text-gray-600'
+                      }`}
+                    >
+                      {c.icon} {c.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <main className="max-w-6xl mx-auto px-4 py-6">
+        {/* Breadcrumb */}
+        <div className="text-xs text-gray-400 mb-4 flex items-center gap-1">
+          <Link href="/" className="hover:text-[#FF6B35]">ホーム</Link>
+          <span>›</span>
+          <span className="text-gray-700">{config.label}</span>
+        </div>
+
+        <h1 className="text-xl font-bold text-[#2E4057] mb-4">{config.icon} {config.label}</h1>
 
         {/* Filters */}
         <form method="get" className="bg-white rounded-xl p-4 shadow mb-6 flex flex-wrap gap-3 items-end">
@@ -93,14 +157,16 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
               <span className="text-sm">円</span>
             </div>
           </div>
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">年齢</label>
-            <select name="age" defaultValue={sp.age || 'all'} className="border rounded px-2 py-1 text-sm">
-              <option value="all">すべて</option>
-              <option value="puppy">子犬・子猫</option>
-              <option value="senior">シニア</option>
-            </select>
-          </div>
+          {(config.petType === 'dog' || config.petType === 'cat') && (
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">年齢</label>
+              <select name="age" defaultValue={sp.age || 'all'} className="border rounded px-2 py-1 text-sm">
+                <option value="all">すべて</option>
+                <option value="puppy">子犬・子猫</option>
+                <option value="senior">シニア</option>
+              </select>
+            </div>
+          )}
           <div>
             <label className="block text-xs text-gray-500 mb-1">評価</label>
             <select name="minReview" defaultValue={sp.minReview || ''} className="border rounded px-2 py-1 text-sm">
@@ -112,22 +178,30 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
           <div>
             <label className="block text-xs text-gray-500 mb-1">並び替え</label>
             <select name="sort" defaultValue={sort} className="border rounded px-2 py-1 text-sm">
-              <option value="review_count">レビュー数順</option>
+              <option value="review_count">人気順</option>
               <option value="price_asc">安い順</option>
               <option value="price_desc">高い順</option>
             </select>
           </div>
-          <button type="submit" className="bg-[#FF6B35] text-white px-4 py-1.5 rounded-lg text-sm font-semibold">絞り込む</button>
+          <button type="submit" className="bg-[#FF6B35] text-white px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-[#e85d2a]">絞り込む</button>
         </form>
 
-        <p className="text-sm text-gray-500 mb-4">{count?.toLocaleString()}件</p>
+        <p className="text-sm text-gray-500 mb-4">{count?.toLocaleString()}件の商品</p>
 
         {!products || products.length === 0 ? (
-          <p className="text-gray-500">商品が見つかりませんでした。</p>
+          <div className="text-center py-16 text-gray-400">
+            <p className="text-4xl mb-3">🐾</p>
+            <p>商品が見つかりませんでした</p>
+            <p className="text-xs mt-2">毎日3時に商品を自動取得しています</p>
+          </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {products.map((p) => (
-              <ProductCard key={p.id} product={p as { id: string; name: string; image_url: string | null; current_price: number; review_count: number; review_average: number }} />
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            {products.map((p, i) => (
+              <ProductCard
+                key={p.id}
+                product={p as { id: string; name: string; image_url: string | null; current_price: number; review_count: number; review_average: number }}
+                rank={page === 1 ? i + 1 : undefined}
+              />
             ))}
           </div>
         )}

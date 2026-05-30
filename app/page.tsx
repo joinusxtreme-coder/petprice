@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import ProductCard from '@/components/ProductCard';
+import { CATEGORY_GROUPS, CATEGORY_CONFIG } from './[category]/page';
 
 export const dynamic = 'force-dynamic';
 
@@ -68,10 +69,10 @@ async function getNewArrivals(): Promise<Product[]> {
 }
 
 const CATEGORIES = [
-  { href: '/dog-food', label: 'ドッグフード', icon: '🐕', color: 'from-orange-400 to-amber-400' },
-  { href: '/cat-food', label: 'キャットフード', icon: '🐈', color: 'from-purple-400 to-pink-400' },
-  { href: '/dog-goods', label: '犬用品', icon: '🦴', color: 'from-blue-400 to-cyan-400' },
-  { href: '/cat-goods', label: '猫用品', icon: '🐾', color: 'from-green-400 to-teal-400' },
+  { href: '/dog-food',  label: 'ドッグフード',   icon: '🐕', color: 'from-orange-400 to-amber-400' },
+  { href: '/cat-food',  label: 'キャットフード', icon: '🐈', color: 'from-purple-400 to-pink-400' },
+  { href: '/dog-goods', label: '犬用品',         icon: '🦴', color: 'from-blue-400 to-cyan-400' },
+  { href: '/cat-goods', label: '猫用品',         icon: '🐾', color: 'from-green-400 to-teal-400' },
 ];
 
 export default async function HomePage() {
@@ -150,6 +151,27 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Category nav bar */}
+      <div className="bg-white border-b overflow-x-auto">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="flex gap-0">
+            {CATEGORY_GROUPS.map((group) => (
+              <div key={group.label} className="flex items-center">
+                <span className="text-xs text-gray-400 px-3 py-3 whitespace-nowrap border-r">{group.label}</span>
+                {group.items.map((key) => {
+                  const c = CATEGORY_CONFIG[key];
+                  return (
+                    <Link key={key} href={`/${key}`} className="text-xs px-3 py-3 whitespace-nowrap text-gray-600 hover:text-[#FF6B35] hover:bg-orange-50 transition-colors">
+                      {c.icon} {c.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
 
       {/* Stats bar */}
       <div className="bg-[#2E4057] text-white py-2">
@@ -243,19 +265,26 @@ export default async function HomePage() {
         {/* Category cards */}
         <section>
           <h2 className="text-lg font-bold text-[#2E4057] mb-4">📂 カテゴリから探す</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {CATEGORIES.map((c) => (
-              <Link
-                key={c.href}
-                href={c.href}
-                className={`bg-gradient-to-br ${c.color} text-white rounded-2xl p-6 text-center hover:opacity-90 transition-all hover:-translate-y-1 shadow-md`}
-              >
-                <div className="text-4xl mb-2">{c.icon}</div>
-                <div className="font-bold">{c.label}</div>
-                <div className="text-xs opacity-80 mt-1">比較する →</div>
-              </Link>
-            ))}
-          </div>
+          {CATEGORY_GROUPS.map((group) => (
+            <div key={group.label} className="mb-6">
+              <h3 className="text-sm font-bold text-gray-500 mb-3">{group.label}</h3>
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+                {group.items.map((key) => {
+                  const c = CATEGORY_CONFIG[key];
+                  return (
+                    <Link
+                      key={key}
+                      href={`/${key}`}
+                      className="bg-white border border-gray-100 rounded-xl p-3 text-center hover:border-[#FF6B35] hover:shadow-md transition-all hover:-translate-y-0.5"
+                    >
+                      <div className="text-2xl mb-1">{c.icon}</div>
+                      <div className="text-xs font-medium text-gray-700 leading-tight">{c.label}</div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </section>
       </main>
 

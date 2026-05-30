@@ -6,38 +6,62 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-const KEYWORDS = [
-  // フード
-  'ドッグフード',
-  'キャットフード',
-  'ウェットフード 猫',
-  'ウェットフード 犬',
-  'パピーフード',
-  'シニア犬 フード',
-  'シニア猫 フード',
-  '犬おやつ',
-  '猫おやつ',
-  // トイレ用品
-  '猫砂',
-  'ペットシーツ',
-  '猫 トイレ',
-  // 犬グッズ
-  'ハーネス 犬',
-  'リード 犬',
-  '首輪 犬',
-  'ペットベッド 犬',
-  '犬 おもちゃ',
-  '犬 キャリーバッグ',
-  // 猫グッズ
-  'キャットタワー',
-  '猫 おもちゃ',
-  'ペットベッド 猫',
-  '猫 爪とぎ',
-  // ケア用品
-  'ペットシャンプー 犬',
-  'ペットシャンプー 猫',
-  '犬 サプリ',
+// keyword → category のマッピング
+const KEYWORD_CATEGORY: [string, string][] = [
+  // ドッグフード
+  ['ドッグフード',      'dog-food'],
+  ['ウェットフード 犬', 'dog-food'],
+  ['パピーフード',      'dog-food'],
+  ['シニア犬 フード',   'dog-food'],
+  // 犬おやつ
+  ['犬おやつ',         'dog-snack'],
+  ['ドッグおやつ',     'dog-snack'],
+  ['犬 ジャーキー',    'dog-snack'],
+  // お散歩用品
+  ['ハーネス 犬',      'dog-walk'],
+  ['リード 犬',        'dog-walk'],
+  ['首輪 犬',          'dog-walk'],
+  // 犬のケア
+  ['ペットシャンプー 犬', 'dog-care'],
+  ['犬 サプリ',        'dog-care'],
+  ['犬 歯ブラシ',      'dog-care'],
+  // 犬用品
+  ['ペットベッド 犬',  'dog-goods'],
+  ['犬 おもちゃ',      'dog-goods'],
+  ['犬 キャリーバッグ','dog-goods'],
+  ['犬 ケージ',        'dog-goods'],
+  // キャットフード
+  ['キャットフード',   'cat-food'],
+  ['ウェットフード 猫','cat-food'],
+  ['シニア猫 フード',  'cat-food'],
+  ['子猫 フード',      'cat-food'],
+  // 猫おやつ
+  ['猫おやつ',         'cat-snack'],
+  ['猫 おやつ ちゅーる','cat-snack'],
+  ['猫 おやつ ちゅ〜る','cat-snack'],
+  // トイレ・猫砂
+  ['猫砂',             'cat-toilet'],
+  ['猫 トイレ',        'cat-toilet'],
+  ['猫砂 鉱物',        'cat-toilet'],
+  ['猫砂 木',          'cat-toilet'],
+  // キャットタワー
+  ['キャットタワー',   'cat-tower'],
+  ['猫 爪とぎ',        'cat-tower'],
+  ['キャットウォーク', 'cat-tower'],
+  // 猫のケア
+  ['ペットシャンプー 猫','cat-care'],
+  ['猫 ブラシ',        'cat-care'],
+  // 猫用品
+  ['ペットベッド 猫',  'cat-goods'],
+  ['猫 おもちゃ',      'cat-goods'],
+  ['猫 キャリーバッグ','cat-goods'],
+  // ペットシーツ
+  ['ペットシーツ',     'pet-sheets'],
+  ['ペットシーツ ワイド','pet-sheets'],
+  ['ペットシーツ 厚型', 'pet-sheets'],
 ];
+
+const KEYWORDS = KEYWORD_CATEGORY.map(([kw]) => kw);
 
 function detectPetType(name: string, keyword: string): string {
   if (/ドッグ|犬|わんこ|パピー/.test(name) || /犬|ドッグ|パピー/.test(keyword)) return 'dog';
@@ -51,15 +75,11 @@ function detectAgeGroup(name: string): string {
   return 'all';
 }
 
-function detectCategory(keyword: string, name: string): string {
-  if (/フード|おやつ|ウェット/.test(keyword) || /フード|おやつ/.test(name)) {
-    if (/ドッグ|犬|パピー|シニア犬/.test(name) || /犬|ドッグ|パピー|シニア犬/.test(keyword)) return 'dog-food';
-    if (/キャット|猫|シニア猫/.test(name) || /猫|キャット|シニア猫/.test(keyword)) return 'cat-food';
-  }
-  if (/ペットシーツ|ハーネス|リード|首輪|ベッド|おもちゃ|キャリー|シャンプー|サプリ/.test(keyword) && /犬/.test(keyword)) return 'dog-goods';
-  if (/猫砂|キャットタワー|爪とぎ/.test(keyword) || (/猫|キャット/.test(keyword) && /ベッド|おもちゃ|トイレ|シャンプー/.test(keyword))) return 'cat-goods';
-  if (/ペットシーツ/.test(keyword)) return 'dog-goods';
-  return 'other';
+// keyword → category マップ（実行時に構築）
+const KEYWORD_TO_CATEGORY = new Map(KEYWORD_CATEGORY);
+
+function detectCategory(keyword: string, _name: string): string {
+  return KEYWORD_TO_CATEGORY.get(keyword) || 'other';
 }
 
 async function main() {
