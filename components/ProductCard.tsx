@@ -8,6 +8,7 @@ interface Product {
   current_price: number;
   review_count: number;
   review_average: number;
+  shop_name?: string;
   prev_price?: number;
 }
 
@@ -16,7 +17,6 @@ interface ProductCardProps {
   rank?: number;
 }
 
-// 価格.com風ランクバッジ色
 function RankBadge({ rank }: { rank: number }) {
   const style =
     rank === 1 ? 'bg-[#FF6600] text-white' :
@@ -36,11 +36,18 @@ export default function ProductCard({ product, rank }: ProductCardProps) {
       ? Math.round((1 - product.current_price / product.prev_price) * 100)
       : null;
 
-  const stars = Math.round(product.review_average);
+  const stars = Math.round(product.review_average * 2) / 2; // 0.5刻み
+  const fullStars = Math.floor(stars);
+  const halfStar = stars % 1 >= 0.5;
+
+  // レビュー数の表示（1000以上はk表示）
+  const reviewDisplay =
+    product.review_count >= 1000
+      ? `${(product.review_count / 1000).toFixed(1)}k`
+      : product.review_count.toString();
 
   return (
-    <div className="bg-white border border-[#ddd] hover:border-[#FF6600] hover:shadow transition-all group relative">
-      {/* Rank */}
+    <div className="bg-white hover:bg-[#FFFBF7] transition-colors group relative flex flex-col">
       {rank && <RankBadge rank={rank} />}
 
       {/* Image */}
@@ -66,34 +73,30 @@ export default function ProductCard({ product, rank }: ProductCardProps) {
       </Link>
 
       {/* Info */}
-      <div className="p-2">
-        <Link href={`/product/${product.id}`} className="text-xs text-[#0058B3] hover:underline leading-snug line-clamp-3 block mb-1.5">
+      <div className="p-2 flex flex-col flex-1">
+        {/* ショップ名（メーカー名代わり） */}
+        {product.shop_name && (
+          <p className="text-xs text-[#999] truncate mb-0.5">{product.shop_name}</p>
+        )}
+
+        <Link href={`/product/${product.id}`} className="text-xs text-[#0058B3] hover:underline leading-snug line-clamp-3 block mb-1 flex-1">
           {product.name}
         </Link>
 
         {product.prev_price && product.prev_price > product.current_price && (
           <p className="text-xs text-[#999] line-through">¥{product.prev_price.toLocaleString()}</p>
         )}
-        <p className="text-base font-bold text-[#CC0000] leading-tight">
-          ¥{product.current_price.toLocaleString()}
+        <p className="text-base font-bold text-[#FF6600] leading-tight">
+          ¥{product.current_price.toLocaleString()}<span className="text-xs font-normal">〜</span>
         </p>
 
-        <div className="flex items-center gap-1 mt-1">
-          <span className="text-yellow-500 text-xs">{'★'.repeat(stars)}{'☆'.repeat(5 - stars)}</span>
-          <span className="text-xs text-[#666]">
-            ({product.review_count >= 1000
-              ? `${(product.review_count / 1000).toFixed(1)}k`
-              : product.review_count})
+        <div className="flex items-center gap-0.5 mt-0.5">
+          <span className="text-yellow-500 text-xs">
+            {'★'.repeat(fullStars)}
+            {halfStar ? '½' : ''}
+            {'☆'.repeat(5 - fullStars - (halfStar ? 1 : 0))}
           </span>
-        </div>
-
-        <div className="mt-1.5">
-          <Link
-            href={`/product/${product.id}`}
-            className="text-xs text-[#666] border border-[#ccc] px-2 py-0.5 hover:bg-[#f5f5f5] inline-block"
-          >
-            詳細を見る
-          </Link>
+          <span className="text-xs text-[#666]">({reviewDisplay})</span>
         </div>
       </div>
     </div>

@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import ProductCard from '@/components/ProductCard';
 import ProductListItem from '@/components/ProductListItem';
-import { CATEGORY_GROUPS, CATEGORY_CONFIG } from './[category]/page';
+import { SIDEBAR_GROUPS, CATEGORY_CONFIG } from './[category]/page';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,11 +21,21 @@ interface ProductWithHistory extends Product {
   price_history?: { price: number; recorded_at: string }[];
 }
 
-async function getRanking(petType: string, limit = 5): Promise<Product[]> {
+async function getRanking(category: string, limit = 4): Promise<Product[]> {
   const { data } = await supabase
     .from('products')
     .select('id, name, image_url, current_price, review_count, review_average, shop_name')
-    .eq('pet_type', petType)
+    .eq('category', category)
+    .order('review_count', { ascending: false })
+    .limit(limit);
+  return (data as Product[]) || [];
+}
+
+async function getDogRanking(limit = 4): Promise<Product[]> {
+  const { data } = await supabase
+    .from('products')
+    .select('id, name, image_url, current_price, review_count, review_average, shop_name')
+    .eq('pet_type', 'dog')
     .order('review_count', { ascending: false })
     .limit(limit);
   return (data as Product[]) || [];
@@ -56,63 +66,152 @@ async function getPriceDrop(): Promise<Product[]> {
 }
 
 export default async function HomePage() {
-  const [dogTop5, catTop5, dropped] = await Promise.all([
-    getRanking('dog', 5),
-    getRanking('cat', 5),
+  const [dogRanking, dogFoodRanking, catFoodRanking, dropped] = await Promise.all([
+    getDogRanking(4),
+    getRanking('dog-food', 4),
+    getRanking('cat-food', 4),
     getPriceDrop(),
   ]);
 
   return (
     <div className="min-h-screen bg-[#F0F0F0]" style={{ fontFamily: 'Meiryo, "Hiragino Kaku Gothic Pro", sans-serif' }}>
+      {/* Top orange stripe */}
+      <div className="bg-[#FF6600] h-1" />
+
       {/* Header */}
-      <header className="bg-white border-b-2 border-[#FF6600]">
-        <div className="max-w-5xl mx-auto px-3 py-2 flex items-center gap-3">
-          <Link href="/" className="shrink-0">
-            <div className="text-[#FF6600] font-bold text-2xl leading-none">ペットプライス</div>
-            <div className="text-xs text-[#666]">「買ってよかった」をすべてのひとに。</div>
+      <header className="bg-white border-b border-[#ddd]">
+        <div className="max-w-5xl mx-auto px-3 py-2 flex items-center gap-4">
+          <Link href="/" className="shrink-0 flex items-center gap-1">
+            <span className="text-[#FF6600] font-bold text-2xl leading-none">ペットプライス</span>
+            <span className="text-[#666] text-lg ml-1">🐾 ペット</span>
           </Link>
-          <form action="/search" className="flex-1 max-w-2xl flex">
+          <form action="/search" className="flex-1 max-w-lg flex">
             <input
               name="q"
-              placeholder="何をお探しですか？（メーカー、製品カテゴリ、製品名、型番...）"
-              className="flex-1 border border-[#ccc] border-r-0 px-3 py-2 text-sm focus:outline-none focus:border-[#FF6600]"
+              placeholder="キーワード検索"
+              className="flex-1 border border-[#ccc] border-r-0 px-3 py-1.5 text-sm focus:outline-none focus:border-[#FF6600]"
             />
-            <button type="submit" className="bg-[#FF6600] text-white px-5 py-2 text-sm font-bold hover:bg-[#e55a00]">
+            <button type="submit" className="bg-[#FF6600] text-white px-4 py-1.5 text-sm font-bold hover:bg-[#e55a00]">
               検索
             </button>
           </form>
+          <span className="text-xs text-[#999] hidden md:block ml-auto">● 毎日3時更新</span>
         </div>
       </header>
 
+      {/* Breadcrumb */}
+      <div className="bg-white border-b border-[#eee]">
+        <div className="max-w-5xl mx-auto px-3 py-1 text-xs text-[#666]">
+          <Link href="/" className="text-[#0058B3] hover:underline">ホーム</Link>
+          <span className="mx-1">{'>'}</span>
+          <span>ペット</span>
+        </div>
+      </div>
+
       <div className="max-w-5xl mx-auto px-3 py-3 flex gap-3">
         {/* Left sidebar */}
-        <aside className="w-44 shrink-0 hidden md:block space-y-2">
-          <div className="bg-white border border-[#ddd]">
-            <div className="bg-[#FF6600] text-white text-xs font-bold px-2 py-1.5">カテゴリ一覧</div>
-            {CATEGORY_GROUPS.map((group) => (
-              <div key={group.label}>
-                <div className="bg-[#f0f0f0] text-[#555] text-xs font-bold px-2 py-1 border-t border-[#ddd]">{group.label}</div>
-                {group.items.map((key) => {
-                  const c = CATEGORY_CONFIG[key];
-                  return (
-                    <Link
-                      key={key}
-                      href={`/${key}`}
-                      className="flex items-center gap-1 px-3 py-1.5 text-xs text-[#0058B3] hover:bg-[#FFF5EE] hover:text-[#FF6600] border-b border-[#eee] transition-colors"
-                    >
-                      {c.icon} {c.label}
-                    </Link>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
+        <aside className="w-44 shrink-0 hidden md:block">
+          {SIDEBAR_GROUPS.map((section) => (
+            <div key={section.label} className="border border-[#ddd] border-b-0 mb-0">
+              <div className="bg-[#FF6600] text-white text-xs font-bold px-2 py-1.5">{section.label}</div>
+              {section.subgroups.map((sub) => (
+                <div key={sub.label}>
+                  <div className="bg-[#f5f5f5] text-[#666] text-xs px-2 py-1 border-t border-[#eee] font-bold">{sub.label}</div>
+                  {sub.keys.map((key) => {
+                    const c = CATEGORY_CONFIG[key];
+                    return (
+                      <Link
+                        key={key}
+                        href={`/${key}`}
+                        className="block px-3 py-1.5 text-xs text-[#0058B3] hover:text-[#FF6600] hover:bg-[#FFF5EE] border-t border-[#eee] transition-colors"
+                      >
+                        {c.label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              ))}
+              <div className="border-t border-[#eee]" />
+            </div>
+          ))}
         </aside>
 
         {/* Main content */}
         <main className="flex-1 min-w-0 space-y-3">
+          {/* キーワード検索 */}
+          <div className="bg-white border border-[#ddd] px-3 py-2 flex items-center gap-2">
+            <span className="text-xs text-[#555] shrink-0 font-bold">🔍 キーワード検索</span>
+            <form action="/search" className="flex flex-1 items-center gap-2">
+              <input name="q" placeholder="製品名・メーカーなど" className="flex-1 border border-[#ccc] border-r-0 px-2 py-1 text-xs focus:outline-none focus:border-[#FF6600]" />
+              <label className="text-xs text-[#666] flex items-center gap-1 cursor-pointer whitespace-nowrap">
+                <input type="radio" name="scope" value="all" defaultChecked /> すべて
+              </label>
+              <label className="text-xs text-[#666] flex items-center gap-1 cursor-pointer whitespace-nowrap">
+                <input type="radio" name="scope" value="pet" /> ペット用品内
+              </label>
+              <button className="bg-[#FF6600] text-white px-3 py-1 text-xs hover:bg-[#e55a00] shrink-0">検索</button>
+            </form>
+          </div>
 
-          {/* 値下がり */}
+          {/* ペット カテゴリランキング */}
+          <section className="bg-white border border-[#ddd]">
+            <div className="px-3 py-2 border-b border-[#ddd] bg-[#f8f8f8]">
+              <h2 className="text-sm font-bold text-[#333]">🏆 ペット カテゴリランキング</h2>
+            </div>
+
+            {/* 犬用品 人気ランキング */}
+            <div className="border-b border-[#eee]">
+              <div className="flex items-center justify-between px-3 py-1.5 border-b border-[#eee] bg-[#fafafa]">
+                <span className="text-xs font-bold text-[#333]">犬用品 人気ランキング</span>
+                <Link href="/dog-food" className="text-xs text-[#0058B3] hover:underline">犬用品 人気ランキング ›</Link>
+              </div>
+              {dogRanking.length === 0 ? (
+                <p className="text-xs text-[#999] p-3">データ取得中...</p>
+              ) : (
+                <div className="grid grid-cols-4 divide-x divide-[#eee] p-2">
+                  {dogRanking.map((p, i) => (
+                    <ProductCard key={p.id} product={p} rank={i + 1} />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* ドッグフード 人気ランキング */}
+            <div className="border-b border-[#eee]">
+              <div className="flex items-center justify-between px-3 py-1.5 border-b border-[#eee] bg-[#fafafa]">
+                <span className="text-xs font-bold text-[#333]">ドッグフード 人気ランキング</span>
+                <Link href="/dog-food" className="text-xs text-[#0058B3] hover:underline">ドッグフード 人気ランキング ›</Link>
+              </div>
+              {dogFoodRanking.length === 0 ? (
+                <p className="text-xs text-[#999] p-3">データ取得中...</p>
+              ) : (
+                <div className="grid grid-cols-4 divide-x divide-[#eee] p-2">
+                  {dogFoodRanking.map((p, i) => (
+                    <ProductCard key={p.id} product={p} rank={i + 1} />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* キャットフード 人気ランキング */}
+            <div>
+              <div className="flex items-center justify-between px-3 py-1.5 border-b border-[#eee] bg-[#fafafa]">
+                <span className="text-xs font-bold text-[#333]">キャットフード 人気ランキング</span>
+                <Link href="/cat-food" className="text-xs text-[#0058B3] hover:underline">キャットフード 人気ランキング ›</Link>
+              </div>
+              {catFoodRanking.length === 0 ? (
+                <p className="text-xs text-[#999] p-3">データ取得中...</p>
+              ) : (
+                <div className="grid grid-cols-4 divide-x divide-[#eee] p-2">
+                  {catFoodRanking.map((p, i) => (
+                    <ProductCard key={p.id} product={p} rank={i + 1} />
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* 値下がり商品 */}
           {dropped.length > 0 && (
             <section className="bg-white border border-[#ddd]">
               <div className="flex items-center justify-between px-3 py-2 border-b border-[#ddd] bg-[#f8f8f8]">
@@ -121,57 +220,13 @@ export default async function HomePage() {
                 </h2>
                 <span className="text-xs text-[#999]">{dropped.length}件</span>
               </div>
-              <div className="divide-y divide-[#eee] px-3">
+              <div className="px-3">
                 {dropped.map((p, i) => (
                   <ProductListItem key={p.id} product={p} rank={i + 1} />
                 ))}
               </div>
             </section>
           )}
-
-          {/* 犬 注目ランキング */}
-          <section className="bg-white border border-[#ddd]">
-            <div className="flex items-center justify-between px-3 py-2 border-b border-[#ddd] bg-[#f8f8f8]">
-              <h2 className="text-sm font-bold text-[#333]">🐕 犬用品 注目ランキング</h2>
-              <Link href="/dog-food" className="text-xs text-[#0058B3] hover:underline">注目ランキングをもっと見る</Link>
-            </div>
-            {dogTop5.length === 0 ? (
-              <p className="text-xs text-[#999] p-3">データ取得中...</p>
-            ) : (
-              <div className="grid grid-cols-5 gap-0 divide-x divide-[#eee] p-2">
-                {(dogTop5 as { id: string; name: string; image_url: string | null; current_price: number; review_count: number; review_average: number }[]).map((p, i) => (
-                  <ProductCard key={p.id} product={p} rank={i + 1} />
-                ))}
-              </div>
-            )}
-            <div className="text-center py-2 border-t border-[#eee]">
-              <Link href="/dog-food" className="text-xs text-white bg-[#FF6600] px-4 py-1.5 hover:bg-[#e55a00] inline-block">
-                人気売れ筋ランキングをもっと見る
-              </Link>
-            </div>
-          </section>
-
-          {/* 猫 注目ランキング */}
-          <section className="bg-white border border-[#ddd]">
-            <div className="flex items-center justify-between px-3 py-2 border-b border-[#ddd] bg-[#f8f8f8]">
-              <h2 className="text-sm font-bold text-[#333]">🐈 猫用品 注目ランキング</h2>
-              <Link href="/cat-food" className="text-xs text-[#0058B3] hover:underline">注目ランキングをもっと見る</Link>
-            </div>
-            {catTop5.length === 0 ? (
-              <p className="text-xs text-[#999] p-3">データ取得中...</p>
-            ) : (
-              <div className="grid grid-cols-5 gap-0 divide-x divide-[#eee] p-2">
-                {(catTop5 as { id: string; name: string; image_url: string | null; current_price: number; review_count: number; review_average: number }[]).map((p, i) => (
-                  <ProductCard key={p.id} product={p} rank={i + 1} />
-                ))}
-              </div>
-            )}
-            <div className="text-center py-2 border-t border-[#eee]">
-              <Link href="/cat-food" className="text-xs text-white bg-[#FF6600] px-4 py-1.5 hover:bg-[#e55a00] inline-block">
-                人気売れ筋ランキングをもっと見る
-              </Link>
-            </div>
-          </section>
 
           {/* サイト説明 */}
           <section className="bg-white border border-[#ddd] p-3">
@@ -186,12 +241,12 @@ export default async function HomePage() {
       </div>
 
       {/* Footer */}
-      <footer className="bg-[#333] text-white mt-6 py-4 px-3 text-xs text-center text-[#aaa]">
-        <div className="max-w-5xl mx-auto flex flex-wrap justify-center gap-4 mb-3">
-          {CATEGORY_GROUPS.map((group) => (
-            <div key={group.label}>
-              <p className="font-bold text-white mb-1">{group.label}</p>
-              {group.items.map((key) => (
+      <footer className="bg-[#333] text-white mt-6 py-4 px-3 text-xs text-[#aaa]">
+        <div className="max-w-5xl mx-auto flex flex-wrap justify-center gap-8 mb-3">
+          {SIDEBAR_GROUPS.map((section) => (
+            <div key={section.label}>
+              <p className="font-bold text-white mb-1">{section.label}</p>
+              {section.subgroups.flatMap((sub) => sub.keys).map((key) => (
                 <Link key={key} href={`/${key}`} className="block text-[#aaa] hover:text-white mb-0.5">
                   {CATEGORY_CONFIG[key].label}
                 </Link>
@@ -199,7 +254,7 @@ export default async function HomePage() {
             </div>
           ))}
         </div>
-        <div className="border-t border-[#555] pt-3">
+        <div className="border-t border-[#555] pt-3 text-center">
           <p>ペットプライス - ペット用品 通販・価格比較</p>
           <p className="mt-1">楽天市場の商品情報を毎日自動取得・比較。※ 価格は実際の価格と異なる場合があります。</p>
         </div>
