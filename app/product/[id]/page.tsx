@@ -6,6 +6,7 @@ import PriceChart from '@/components/PriceChart';
 import AlertForm from '@/components/AlertForm';
 import AffiliateButton from '@/components/AffiliateButton';
 import ProductCard from '@/components/ProductCard';
+import { CATEGORY_CONFIG, SIDEBAR_GROUPS } from '@/app/[category]/page';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -44,84 +45,227 @@ export default async function ProductPage({ params }: PageProps) {
 
   const { data: related } = await supabase
     .from('products')
-    .select('id, name, image_url, current_price, review_count, review_average')
-    .eq('pet_type', product.pet_type)
+    .select('id, name, image_url, current_price, review_count, review_average, shop_name')
+    .eq('category', product.category)
     .neq('id', id)
     .order('review_count', { ascending: false })
     .limit(4);
 
   const stars = Math.round(product.review_average || 0);
+  const config = CATEGORY_CONFIG[product.category];
+
+  // 価格の最安値・最高値
+  const allPrices = (history || []).map((h: { price: number }) => h.price);
+  const minPrice = allPrices.length > 0 ? Math.min(...allPrices) : null;
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA]">
-      <header className="bg-white shadow-sm sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-4">
-          <Link href="/" className="text-2xl font-bold text-[#FF6B35] shrink-0">ペットプライス🐾</Link>
-          <form action="/search" className="flex-1 max-w-md">
-            <input name="q" placeholder="商品名を検索..." className="w-full border border-gray-300 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF6B35]" />
+    <div className="min-h-screen bg-[#F0F0F0]" style={{ fontFamily: 'Meiryo, "Hiragino Kaku Gothic Pro", sans-serif' }}>
+      {/* Top orange stripe */}
+      <div className="bg-[#FF6600] h-1" />
+
+      {/* Header */}
+      <header className="bg-white border-b border-[#ddd]">
+        <div className="max-w-5xl mx-auto px-3 py-2 flex items-center gap-4">
+          <Link href="/" className="shrink-0 flex items-center gap-1">
+            <span className="text-[#FF6600] font-bold text-xl leading-none">ペットプライス</span>
+            <span className="text-[#666] text-base ml-1">🐾 ペット</span>
+          </Link>
+          <form action="/search" className="flex-1 max-w-lg flex">
+            <input
+              name="q"
+              placeholder="キーワード検索"
+              className="flex-1 border border-[#ccc] border-r-0 px-3 py-1.5 text-sm focus:outline-none focus:border-[#FF6600]"
+            />
+            <button type="submit" className="bg-[#FF6600] text-white px-4 py-1.5 text-sm font-bold hover:bg-[#e55a00]">
+              検索
+            </button>
           </form>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-8 space-y-6">
-        {/* Back */}
-        <Link href={`/${product.category}`} className="text-sm text-[#FF6B35] hover:underline">← 一覧に戻る</Link>
+      {/* Breadcrumb */}
+      <div className="bg-white border-b border-[#eee]">
+        <div className="max-w-5xl mx-auto px-3 py-1 text-xs text-[#666]">
+          <Link href="/" className="text-[#0058B3] hover:underline">ホーム</Link>
+          <span className="mx-1">{'>'}</span>
+          <Link href="/" className="text-[#0058B3] hover:underline">ペット</Link>
+          {config && (
+            <>
+              <span className="mx-1">{'>'}</span>
+              <Link href={`/${product.category}`} className="text-[#0058B3] hover:underline">{config.label}</Link>
+            </>
+          )}
+          <span className="mx-1">{'>'}</span>
+          <span className="line-clamp-1">{product.name.slice(0, 30)}...</span>
+        </div>
+      </div>
 
-        {/* Product Info */}
-        <div className="bg-white rounded-xl shadow p-6">
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="relative aspect-square bg-gray-50 rounded-xl overflow-hidden">
-              {product.image_url ? (
-                <Image src={product.image_url} alt={product.name} fill className="object-contain p-4" sizes="(max-width: 768px) 100vw, 50vw" />
-              ) : (
-                <div className="flex items-center justify-center h-full text-6xl">🐾</div>
-              )}
+      <div className="max-w-5xl mx-auto px-3 py-3 flex gap-3">
+        {/* Left sidebar */}
+        <aside className="w-44 shrink-0 hidden md:block">
+          {SIDEBAR_GROUPS.map((section) => (
+            <div key={section.label} className="border border-[#ddd] border-b-0 mb-0">
+              <div className="bg-[#FF6600] text-white text-xs font-bold px-2 py-1.5">{section.label}</div>
+              {section.subgroups.map((sub) => (
+                <div key={sub.label}>
+                  <div className="bg-[#f5f5f5] text-[#666] text-xs px-2 py-1 border-t border-[#eee] font-bold">{sub.label}</div>
+                  {sub.keys.map((key) => {
+                    const c = CATEGORY_CONFIG[key];
+                    return (
+                      <Link
+                        key={key}
+                        href={`/${key}`}
+                        className={`block px-3 py-1.5 text-xs border-t border-[#eee] transition-colors ${
+                          key === product.category
+                            ? 'bg-[#FFF5EE] text-[#FF6600] font-bold'
+                            : 'text-[#0058B3] hover:text-[#FF6600] hover:bg-[#FFF5EE]'
+                        }`}
+                      >
+                        {c.label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              ))}
+              <div className="border-t border-[#eee]" />
             </div>
+          ))}
+        </aside>
 
-            <div className="space-y-4">
-              <h1 className="text-lg font-bold text-[#333333] leading-snug">{product.name}</h1>
-              {product.brand && <p className="text-sm text-gray-500">{product.brand}</p>}
-
-              <div>
-                <div className="text-3xl font-bold text-red-600">¥{product.current_price.toLocaleString()}</div>
-                {priceDiff !== null && (
-                  <div className={`inline-flex items-center gap-1 text-sm font-semibold px-3 py-1 rounded-full mt-2 ${priceDiff < 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
-                    {priceDiff < 0 ? '▼' : '▲'}{Math.abs(priceDiff).toLocaleString()}円 昨日より{priceDiff < 0 ? '安い！' : '高い'}
-                  </div>
+        {/* Main content */}
+        <main className="flex-1 min-w-0 space-y-3">
+          {/* Product Info */}
+          <div className="bg-white border border-[#ddd]">
+            <div className="px-3 py-2 border-b border-[#ddd] bg-[#f8f8f8]">
+              <h1 className="text-sm font-bold text-[#333] leading-snug">{product.name}</h1>
+            </div>
+            <div className="p-3 flex gap-4">
+              {/* Image */}
+              <div className="shrink-0 w-48 h-48 relative bg-white border border-[#eee] overflow-hidden">
+                {product.image_url ? (
+                  <Image
+                    src={product.image_url}
+                    alt={product.name}
+                    fill
+                    className="object-contain p-2"
+                    sizes="192px"
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-full text-5xl text-[#ccc]">🐾</div>
                 )}
               </div>
 
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <span className="text-yellow-400 text-lg">{'★'.repeat(stars)}{'☆'.repeat(5 - stars)}</span>
-                <span>{product.review_average}</span>
-                <span>({(product.review_count || 0).toLocaleString()}件)</span>
+              {/* Info */}
+              <div className="flex-1 min-w-0 space-y-3">
+                {/* 店舗名 */}
+                {product.shop_name && (
+                  <p className="text-xs text-[#999]">販売: {product.shop_name}</p>
+                )}
+
+                {/* 価格 */}
+                <div>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-3xl font-bold text-[#FF6600]">
+                      ¥{product.current_price.toLocaleString()}
+                    </span>
+                    <span className="text-sm text-[#999]">（税込）</span>
+                  </div>
+                  {priceDiff !== null && (
+                    <div className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 mt-1 ${priceDiff < 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+                      {priceDiff < 0 ? '▼' : '▲'} {Math.abs(priceDiff).toLocaleString()}円 昨日より{priceDiff < 0 ? '値下がり！' : '値上がり'}
+                    </div>
+                  )}
+                </div>
+
+                {/* 最安値情報 */}
+                {minPrice && minPrice < product.current_price && (
+                  <div className="text-xs text-[#666] bg-[#f8f8f8] border border-[#eee] px-2 py-1">
+                    過去30日最安値: <span className="font-bold text-[#CC0000]">¥{minPrice.toLocaleString()}</span>
+                  </div>
+                )}
+
+                {/* 星評価 */}
+                <div className="flex items-center gap-2">
+                  <span className="text-yellow-500 text-base">{'★'.repeat(stars)}{'☆'.repeat(5 - stars)}</span>
+                  <span className="text-sm text-[#FF6600] font-bold">{product.review_average}</span>
+                  <span className="text-xs text-[#0058B3] hover:underline cursor-pointer">
+                    （{(product.review_count || 0).toLocaleString()}件のレビュー）
+                  </span>
+                </div>
+
+                {/* 購入ボタン */}
+                <div>
+                  <AffiliateButton url={product.affiliate_url || product.item_url || '#'} className="w-full" />
+                </div>
+
+                {/* カテゴリ一覧へ */}
+                {config && (
+                  <Link href={`/${product.category}`} className="text-xs text-[#0058B3] hover:underline">
+                    ← {config.label}の一覧に戻る
+                  </Link>
+                )}
               </div>
-
-              {product.shop_name && <p className="text-sm text-gray-500">販売店: {product.shop_name}</p>}
-
-              <AffiliateButton url={product.affiliate_url || product.item_url || '#'} className="w-full" />
             </div>
           </div>
-        </div>
 
-        {/* Price Chart */}
-        {history && history.length > 1 && <PriceChart history={history} />}
+          {/* 価格推移グラフ */}
+          {history && history.length > 1 && (
+            <div className="bg-white border border-[#ddd]">
+              <div className="px-3 py-2 border-b border-[#ddd] bg-[#f8f8f8]">
+                <h2 className="text-sm font-bold text-[#333]">📈 過去30日間の価格推移</h2>
+              </div>
+              <div className="p-3">
+                <PriceChart history={history} />
+                <p className="text-xs text-[#999] mt-1">● 赤い点が最安値</p>
+              </div>
+            </div>
+          )}
 
-        {/* Alert Form */}
-        <AlertForm productId={product.id} currentPrice={product.current_price} />
+          {/* 価格アラート */}
+          <div className="bg-white border border-[#ddd]">
+            <div className="px-3 py-2 border-b border-[#ddd] bg-[#f8f8f8]">
+              <h2 className="text-sm font-bold text-[#333]">🔔 価格アラート設定</h2>
+            </div>
+            <div className="p-3">
+              <AlertForm productId={product.id} currentPrice={product.current_price} />
+            </div>
+          </div>
 
-        {/* Related Products */}
-        {related && related.length > 0 && (
-          <section>
-            <h2 className="text-lg font-bold text-[#2E4057] mb-4">関連商品</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {related.map((p: { id: string; name: string; image_url: string | null; current_price: number; review_count: number; review_average: number }) => (
-                <ProductCard key={p.id} product={p} />
+          {/* 関連商品 */}
+          {related && related.length > 0 && (
+            <section className="bg-white border border-[#ddd]">
+              <div className="px-3 py-2 border-b border-[#ddd] bg-[#f8f8f8]">
+                <h2 className="text-sm font-bold text-[#333]">関連商品</h2>
+              </div>
+              <div className="grid grid-cols-4 divide-x divide-[#eee] p-2">
+                {(related as { id: string; name: string; image_url: string | null; current_price: number; review_count: number; review_average: number; shop_name?: string }[]).map((p) => (
+                  <ProductCard key={p.id} product={p} />
+                ))}
+              </div>
+            </section>
+          )}
+        </main>
+      </div>
+
+      {/* Footer */}
+      <footer className="bg-[#333] text-white mt-6 py-4 px-3 text-xs text-[#aaa]">
+        <div className="max-w-5xl mx-auto flex flex-wrap justify-center gap-8 mb-3">
+          {SIDEBAR_GROUPS.map((section) => (
+            <div key={section.label}>
+              <p className="font-bold text-white mb-1">{section.label}</p>
+              {section.subgroups.flatMap((sub) => sub.keys).map((key) => (
+                <Link key={key} href={`/${key}`} className="block text-[#aaa] hover:text-white mb-0.5">
+                  {CATEGORY_CONFIG[key].label}
+                </Link>
               ))}
             </div>
-          </section>
-        )}
-      </main>
+          ))}
+        </div>
+        <div className="border-t border-[#555] pt-3 text-center">
+          <p>ペットプライス - ペット用品 通販・価格比較</p>
+          <p className="mt-1">楽天市場の商品情報を毎日自動取得・比較。※ 価格は実際の価格と異なる場合があります。</p>
+        </div>
+      </footer>
     </div>
   );
 }
