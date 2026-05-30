@@ -51,6 +51,14 @@ export default async function ProductPage({ params }: PageProps) {
     .order('review_count', { ascending: false })
     .limit(4);
 
+  // カテゴリ内ランキング順位を計算（自分より review_count が多い商品数 + 1）
+  const { count: rankCount } = await supabase
+    .from('products')
+    .select('id', { count: 'exact', head: true })
+    .eq('category', product.category)
+    .gt('review_count', product.review_count);
+  const rankPosition = (rankCount ?? 0) + 1;
+
   const stars = Math.round(product.review_average || 0);
   const config = CATEGORY_CONFIG[product.category];
 
@@ -181,6 +189,16 @@ export default async function ProductPage({ params }: PageProps) {
                 {minPrice && minPrice < product.current_price && (
                   <div className="text-xs text-[#666] bg-[#f8f8f8] border border-[#eee] px-2 py-1">
                     過去30日最安値: <span className="font-bold text-[#CC0000]">¥{minPrice.toLocaleString()}</span>
+                  </div>
+                )}
+
+                {/* 売れ筋ランキング */}
+                {config && (
+                  <div className="flex items-center gap-2 text-xs bg-[#FFF5EE] border border-[#FFD0B0] px-2 py-1">
+                    <span className="text-[#FF6600] font-bold">売れ筋ランキング</span>
+                    <span className="font-bold text-[#CC0000] text-sm">{rankPosition}位</span>
+                    <span className="text-[#999]">({config.label}カテゴリ)</span>
+                    <Link href={`/${product.category}`} className="text-[#0058B3] hover:underline ml-auto">ランキングを見る</Link>
                   </div>
                 )}
 

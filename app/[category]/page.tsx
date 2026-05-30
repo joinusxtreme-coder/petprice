@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import ProductCard from '@/components/ProductCard';
+import ProductListItem from '@/components/ProductListItem';
 
 export const CATEGORY_CONFIG: Record<string, { label: string; icon: string; petType: string; dbCategory: string; group: string }> = {
   'dog-food':   { label: 'ドッグフード',   icon: '🐕', petType: 'dog', dbCategory: 'dog-food',   group: '犬用品' },
@@ -53,6 +54,22 @@ export const SIDEBAR_GROUPS = [
   },
 ];
 
+// カテゴリ別 人気検索条件（kakaku.com の「人気検索条件」タグクラウド相当）
+export const POPULAR_SEARCHES: Record<string, string[]> = {
+  'dog-food':   ['ヒルズ', 'ロイヤルカナン', 'ニュートロ', 'アカナ', 'グランデリ', '療法食', '無添加', '穀物不使用', '小型犬', 'シニア', 'パピー', '国産'],
+  'dog-snack':  ['ジャーキー', 'デンタルガム', '無添加', '国産', 'ガム', '骨'],
+  'dog-walk':   ['小型犬', 'ハーネス', '伸縮リード', '首輪', 'マナーウェア'],
+  'dog-care':   ['シャンプー', 'サプリ', 'デンタル', 'グルーミング', '爪切り'],
+  'dog-goods':  ['ケージ', 'ベッド', 'おもちゃ', 'キャリー', '給水器', '服'],
+  'cat-food':   ['ロイヤルカナン', 'ヒルズ', 'ニュートロ', 'モグニャン', '療法食', '無添加', '穀物不使用', '子猫', 'シニア', '尿路ケア', 'インドア', '毛玉ケア'],
+  'cat-snack':  ['ちゅーる', 'INABA', '無添加', 'パウチ', '国産'],
+  'cat-toilet': ['鉱物系', '木系', '紙系', 'おから', 'シリカゲル', 'システムトイレ', '消臭'],
+  'cat-tower':  ['大型', 'スリム', '突っ張り', '据え置き', '麻縄'],
+  'cat-care':   ['シャンプー', 'グルーミング', 'デンタル', 'サプリ', '爪切り'],
+  'cat-goods':  ['電動おもちゃ', 'ベッド', 'ドーム型', '給水器', 'ハンモック', 'キャリー'],
+  'pet-sheets': ['ワイド', 'スーパーワイド', '厚型', 'レギュラー', '業務用', '消臭'],
+};
+
 const PAGE_SIZE = 20;
 
 interface PageProps {
@@ -64,6 +81,7 @@ interface PageProps {
     minReview?: string;
     sort?: string;
     page?: string;
+    brand?: string;
   }>;
 }
 
@@ -95,6 +113,17 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
     .order('review_count', { ascending: false })
     .limit(5);
 
+  // 新着商品（過去60日以内に登録/更新）
+  const since60 = new Date();
+  since60.setDate(since60.getDate() - 60);
+  const { data: newProducts } = await supabase
+    .from('products')
+    .select('id, name, image_url, current_price, review_count, review_average, shop_name')
+    .eq('category', config.dbCategory)
+    .gte('updated_at', since60.toISOString())
+    .order('updated_at', { ascending: false })
+    .limit(4);
+
   // 全製品（絞り込み・ページング）
   let query = supabase
     .from('products')
@@ -119,7 +148,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
     return `/${category}?${p.toString()}`;
   }
 
-  const isFiltered = !!(sp.minPrice || sp.maxPrice || (sp.age && sp.age !== 'all') || sp.minReview);
+  const isFiltered = !!(sp.minPrice || sp.maxPrice || (sp.age && sp.age !== 'all') || sp.minReview || sp.brand);
 
   return (
     <div className="min-h-screen bg-[#F0F0F0]" style={{ fontFamily: 'Meiryo, "Hiragino Kaku Gothic Pro", sans-serif' }}>
@@ -287,6 +316,41 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
               <div className="grid grid-cols-5 divide-x divide-[#eee] p-2">
                 {(top5 as { id: string; name: string; image_url: string | null; current_price: number; review_count: number; review_average: number; shop_name?: string }[]).map((p, i) => (
                   <ProductCard key={p.id} product={p} rank={i + 1} />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* 人気検索条件タグクラウド */}
+          {POPULAR_SEARCHES[category] && !isFiltered && page === 1 && (
+            <section className="bg-white border border-[#ddd]">
+              <div className="px-3 py-2 border-b border-[#ddd] bg-[#f8f8f8]">
+                <h2 className="text-xs font-bold text-[#333]">{config.label} 人気検索条件</h2>
+              </div>
+              <div className="px-3 py-2 flex flex-wrap gap-1.5">
+                {POPULAR_SEARCHES[category].map((tag) => (
+                  <Link
+                    key={tag}
+                    href={`/search?q=${encodeURIComponent(tag)}`}
+                    className="inline-block border border-[#0058B3] text-[#0058B3] text-xs px-2 py-0.5 hover:bg-[#0058B3] hover:text-white transition-colors"
+                  >
+                    {tag}
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* 新着商品（登録60日以内） */}
+          {newProducts && newProducts.length > 0 && !isFiltered && page === 1 && (
+            <section className="bg-white border border-[#ddd]">
+              <div className="flex items-center justify-between px-3 py-2 border-b border-[#ddd] bg-[#f8f8f8]">
+                <h2 className="text-sm font-bold text-[#333]">🆕 新着{config.label}（登録60日以内）</h2>
+                <span className="text-xs text-[#999]">{newProducts.length}件</span>
+              </div>
+              <div className="px-3">
+                {(newProducts as { id: string; name: string; image_url: string | null; current_price: number; review_count: number; review_average: number; shop_name?: string }[]).map((p, i) => (
+                  <ProductListItem key={p.id} product={p} rank={i + 1} />
                 ))}
               </div>
             </section>
