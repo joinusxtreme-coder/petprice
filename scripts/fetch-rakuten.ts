@@ -43,7 +43,7 @@ async function main() {
         const petType = detectPetType(item.itemName);
         const ageGroup = detectAgeGroup(item.itemName);
         const category = detectCategory(keyword, item.itemName);
-        const imageUrl = item.mediumImageUrls?.[0]?.imageUrl || null;
+        const imageUrl = item.mediumImageUrls?.[0] || null;
 
         const productData = {
           rakuten_item_id: item.itemCode,

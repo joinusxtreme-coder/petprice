@@ -7,7 +7,7 @@ export interface RakutenItem {
   itemPrice: number;
   itemUrl: string;
   affiliateUrl: string;
-  mediumImageUrls: { imageUrl: string }[];
+  mediumImageUrls: string[];
   shopName: string;
   reviewCount: number;
   reviewAverage: number;
