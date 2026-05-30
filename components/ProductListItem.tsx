@@ -17,87 +17,78 @@ interface Props {
   rank?: number;
 }
 
-const RANK_STYLE: Record<number, string> = {
-  1: 'bg-yellow-400 text-white',
-  2: 'bg-gray-400 text-white',
-  3: 'bg-orange-500 text-white',
-};
+function RankBadge({ rank }: { rank: number }) {
+  const style =
+    rank === 1 ? 'bg-[#FF6600] text-white' :
+    rank === 2 ? 'bg-[#999] text-white' :
+    rank === 3 ? 'bg-[#CC6600] text-white' :
+    'bg-[#eee] text-[#555]';
+  return (
+    <div className={`shrink-0 w-7 h-7 flex items-center justify-center text-sm font-bold ${style}`}>
+      {rank}
+    </div>
+  );
+}
 
 export default function ProductListItem({ product, rank }: Props) {
   const discountRate =
     product.prev_price && product.prev_price > product.current_price
       ? Math.round((1 - product.current_price / product.prev_price) * 100)
       : null;
-
   const stars = Math.round(product.review_average);
 
   return (
-    <Link
-      href={`/product/${product.id}`}
-      className="group flex gap-4 bg-white border border-gray-200 rounded-lg p-4 hover:border-[#E4007F] hover:shadow-md transition-all"
-    >
-      {/* Rank */}
-      {rank && (
-        <div className="shrink-0 flex flex-col items-center justify-start pt-1">
-          <div
-            className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-              RANK_STYLE[rank] || 'bg-gray-200 text-gray-600'
-            }`}
-          >
-            {rank}
-          </div>
-        </div>
-      )}
+    <div className="flex gap-3 items-start py-3 border-b border-[#eee] last:border-0 hover:bg-[#FFFBF7] transition-colors group">
+      {rank && <RankBadge rank={rank} />}
 
       {/* Image */}
-      <div className="relative w-20 h-20 shrink-0 bg-gray-50 rounded-md overflow-hidden border border-gray-100">
-        {product.image_url ? (
-          <Image
-            src={product.image_url}
-            alt={product.name}
-            fill
-            className="object-contain p-1 group-hover:scale-105 transition-transform"
-            sizes="80px"
-          />
-        ) : (
-          <div className="flex items-center justify-center h-full text-gray-300 text-2xl">🐾</div>
-        )}
-      </div>
+      <Link href={`/product/${product.id}`} className="shrink-0">
+        <div className="relative w-16 h-16 bg-white border border-[#eee] overflow-hidden">
+          {product.image_url ? (
+            <Image
+              src={product.image_url}
+              alt={product.name}
+              fill
+              className="object-contain p-1 group-hover:scale-105 transition-transform"
+              sizes="64px"
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full text-[#ccc] text-2xl">🐾</div>
+          )}
+        </div>
+      </Link>
 
       {/* Info */}
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-[#333] leading-snug line-clamp-2 group-hover:text-[#E4007F] transition-colors">
+        <Link href={`/product/${product.id}`} className="text-sm text-[#0058B3] hover:underline leading-snug line-clamp-2">
           {product.name}
-        </p>
-        <div className="flex items-center gap-2 mt-1.5">
-          <div className="flex text-yellow-400 text-xs">
-            {'★'.repeat(stars)}{'☆'.repeat(5 - stars)}
-          </div>
-          <span className="text-xs text-gray-500">{product.review_average}</span>
-          <span className="text-xs text-blue-600 underline">
+        </Link>
+        <div className="flex items-center gap-1 mt-0.5">
+          <span className="text-yellow-500 text-xs">{'★'.repeat(stars)}{'☆'.repeat(5 - stars)}</span>
+          <span className="text-xs text-[#0058B3] hover:underline cursor-pointer">
             ({product.review_count.toLocaleString()}件)
           </span>
         </div>
         {product.shop_name && (
-          <p className="text-xs text-gray-400 mt-1">販売: {product.shop_name}</p>
+          <p className="text-xs text-[#999] mt-0.5">販売: {product.shop_name}</p>
         )}
       </div>
 
       {/* Price */}
-      <div className="shrink-0 text-right">
+      <div className="shrink-0 text-right min-w-[90px]">
         {product.prev_price && product.prev_price > product.current_price && (
-          <p className="text-xs text-gray-400 line-through">¥{product.prev_price.toLocaleString()}</p>
+          <p className="text-xs text-[#999] line-through">¥{product.prev_price.toLocaleString()}</p>
         )}
-        <p className="text-xl font-bold text-[#E4007F]">
+        <p className="text-lg font-bold text-[#CC0000]">
           ¥{product.current_price.toLocaleString()}
         </p>
         {discountRate && discountRate >= 3 && (
-          <span className="inline-block text-xs bg-red-100 text-red-600 font-bold px-1.5 py-0.5 rounded mt-0.5">
+          <span className="text-xs text-white bg-red-600 px-1 py-0.5 font-bold">
             -{discountRate}%
           </span>
         )}
-        <p className="text-xs text-gray-500 mt-1">楽天市場</p>
+        <p className="text-xs text-[#999] mt-0.5">楽天市場</p>
       </div>
-    </Link>
+    </div>
   );
 }

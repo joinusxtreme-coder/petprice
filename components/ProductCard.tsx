@@ -16,25 +16,16 @@ interface ProductCardProps {
   rank?: number;
 }
 
-const RANK_COLORS: Record<number, string> = {
-  1: 'bg-yellow-400 text-white',
-  2: 'bg-gray-400 text-white',
-  3: 'bg-orange-500 text-white',
-};
-
-function StarRating({ average, count }: { average: number; count: number }) {
-  const full = Math.floor(average);
-  const half = average - full >= 0.5;
+// 価格.com風ランクバッジ色
+function RankBadge({ rank }: { rank: number }) {
+  const style =
+    rank === 1 ? 'bg-[#FF6600] text-white' :
+    rank === 2 ? 'bg-[#999] text-white' :
+    rank === 3 ? 'bg-[#CC6600] text-white' :
+    'bg-[#eee] text-[#666]';
   return (
-    <div className="flex items-center gap-1">
-      <div className="flex text-yellow-400 text-xs">
-        {[1, 2, 3, 4, 5].map((i) => (
-          <span key={i}>{i <= full ? '★' : i === full + 1 && half ? '⯨' : '☆'}</span>
-        ))}
-      </div>
-      <span className="text-xs text-gray-500">
-        ({count >= 1000 ? `${(count / 1000).toFixed(1)}k` : count})
-      </span>
+    <div className={`absolute top-0 left-0 w-6 h-6 flex items-center justify-center text-xs font-bold z-10 ${style}`}>
+      {rank}
     </div>
   );
 }
@@ -45,69 +36,66 @@ export default function ProductCard({ product, rank }: ProductCardProps) {
       ? Math.round((1 - product.current_price / product.prev_price) * 100)
       : null;
 
+  const stars = Math.round(product.review_average);
+
   return (
-    <Link
-      href={`/product/${product.id}`}
-      className="group block bg-white rounded-xl overflow-hidden shadow hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5"
-    >
+    <div className="bg-white border border-[#ddd] hover:border-[#FF6600] hover:shadow transition-all group relative">
+      {/* Rank */}
+      {rank && <RankBadge rank={rank} />}
+
       {/* Image */}
-      <div className="relative aspect-square bg-gray-50 overflow-hidden">
-        {product.image_url ? (
-          <Image
-            src={product.image_url}
-            alt={product.name}
-            fill
-            className="object-contain p-2 group-hover:scale-105 transition-transform duration-200"
-            sizes="(max-width: 768px) 50vw, 25vw"
-          />
-        ) : (
-          <div className="flex items-center justify-center h-full text-gray-300 text-5xl">🐾</div>
-        )}
-
-        {/* Rank badge */}
-        {rank && (
-          <div
-            className={`absolute top-2 left-2 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shadow ${
-              RANK_COLORS[rank] || 'bg-[#2E4057] text-white'
-            }`}
-          >
-            {rank}
-          </div>
-        )}
-
-        {/* Discount badge */}
-        {discountRate && discountRate >= 5 && (
-          <div className="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded">
-            -{discountRate}%
-          </div>
-        )}
-
-        {/* Popular badge */}
-        {!rank && !discountRate && product.review_count >= 10000 && (
-          <div className="absolute top-2 right-2 bg-[#FF6B35] text-white text-xs font-bold px-1.5 py-0.5 rounded">
-            人気
-          </div>
-        )}
-      </div>
+      <Link href={`/product/${product.id}`} className="block">
+        <div className="relative aspect-square bg-white border-b border-[#eee] overflow-hidden">
+          {product.image_url ? (
+            <Image
+              src={product.image_url}
+              alt={product.name}
+              fill
+              className="object-contain p-2 group-hover:scale-105 transition-transform duration-200"
+              sizes="(max-width: 768px) 50vw, 20vw"
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full text-[#ccc] text-4xl">🐾</div>
+          )}
+          {discountRate && discountRate >= 3 && (
+            <div className="absolute bottom-0 right-0 bg-red-600 text-white text-xs font-bold px-1 py-0.5">
+              -{discountRate}%
+            </div>
+          )}
+        </div>
+      </Link>
 
       {/* Info */}
-      <div className="p-3 space-y-1.5">
-        <p className="text-xs text-gray-700 font-medium line-clamp-2 leading-snug">{product.name}</p>
+      <div className="p-2">
+        <Link href={`/product/${product.id}`} className="text-xs text-[#0058B3] hover:underline leading-snug line-clamp-3 block mb-1.5">
+          {product.name}
+        </Link>
 
-        <div className="space-y-0.5">
-          {product.prev_price && product.prev_price > product.current_price && (
-            <p className="text-xs text-gray-400 line-through">¥{product.prev_price.toLocaleString()}</p>
-          )}
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-base font-bold text-red-600">¥{product.current_price.toLocaleString()}</span>
-            {discountRate && discountRate >= 5 && (
-              <span className="text-xs text-red-500 font-semibold">{discountRate}%OFF</span>
-            )}
-          </div>
+        {product.prev_price && product.prev_price > product.current_price && (
+          <p className="text-xs text-[#999] line-through">¥{product.prev_price.toLocaleString()}</p>
+        )}
+        <p className="text-base font-bold text-[#CC0000] leading-tight">
+          ¥{product.current_price.toLocaleString()}
+        </p>
+
+        <div className="flex items-center gap-1 mt-1">
+          <span className="text-yellow-500 text-xs">{'★'.repeat(stars)}{'☆'.repeat(5 - stars)}</span>
+          <span className="text-xs text-[#666]">
+            ({product.review_count >= 1000
+              ? `${(product.review_count / 1000).toFixed(1)}k`
+              : product.review_count})
+          </span>
         </div>
 
-        <StarRating average={product.review_average} count={product.review_count} />
+        <div className="mt-1.5">
+          <Link
+            href={`/product/${product.id}`}
+            className="text-xs text-[#666] border border-[#ccc] px-2 py-0.5 hover:bg-[#f5f5f5] inline-block"
+          >
+            詳細を見る
+          </Link>
+        </div>
       </div>
-    </Link>
+    </div>
   );
 }
