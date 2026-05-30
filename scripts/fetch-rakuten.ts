@@ -38,6 +38,11 @@ async function main() {
     try {
       const items = await searchProducts(keyword);
       console.log(`  Got ${items.length} items`);
+      if (items.length > 0) {
+        const sample = items[0];
+        console.log(`  Sample mediumImageUrls:`, JSON.stringify(sample.mediumImageUrls));
+        console.log(`  Sample itemCode:`, sample.itemCode);
+      }
 
       for (const item of items) {
         const petType = detectPetType(item.itemName);
