@@ -6,6 +6,7 @@ import RecentlyViewed from '@/components/RecentlyViewed';
 import SiteHeader from '@/components/SiteHeader';
 import PetRecommendations from '@/components/PetRecommendations';
 import { SIDEBAR_GROUPS, CATEGORY_CONFIG } from './[category]/page';
+import { COLUMNS } from '@/lib/columns';
 
 export const dynamic = 'force-dynamic';
 
@@ -251,6 +252,49 @@ export default async function HomePage() {
             </div>
           </section>
 
+
+          {/* コラム新着 */}
+          <section className="bg-white border border-[#ddd]">
+            <div className="flex items-center justify-between px-3 py-2 border-b border-[#ddd] bg-[#f8f8f8]">
+              <h2 className="text-sm font-bold text-[#333]">📝 専門家コラム</h2>
+              <Link href="/column" className="text-xs text-[#0058B3] hover:underline">コラム一覧 ›</Link>
+            </div>
+            <div className="divide-y divide-[#eee]">
+              {COLUMNS.slice(0, 4).map((col) => (
+                <Link key={col.slug} href={`/column/${col.slug}`} className="flex gap-3 px-3 py-2 hover:bg-[#FFF5EE] transition-colors group">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-[#0058B3] group-hover:text-[#FF6600] leading-snug line-clamp-1">{col.title}</p>
+                    <p className="text-xs text-[#999] mt-0.5 line-clamp-1">{col.description}</p>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <span className="text-xs text-[#999]">{col.date}</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+
+          {/* コミュニティ */}
+          <section className="bg-white border border-[#ddd]">
+            <div className="flex items-center justify-between px-3 py-2 border-b border-[#ddd] bg-[#f8f8f8]">
+              <h2 className="text-sm font-bold text-[#333]">💬 コミュニティ</h2>
+              <Link href="/community" className="text-xs text-[#0058B3] hover:underline">掲示板へ ›</Link>
+            </div>
+            <div className="px-3 py-4 text-center space-y-2">
+              <p className="text-xs text-[#666]">ペットの食事・健康について、みんなで情報共有しましょう！</p>
+              <div className="flex justify-center gap-2 flex-wrap">
+                {['ドッグフード選び', 'シニア犬の食事', 'グレインフリー', 'キャットフード比較', '療法食'].map((tag) => (
+                  <Link key={tag} href={`/community?tag=${encodeURIComponent(tag)}`}
+                    className="text-xs bg-[#f0f0f0] text-[#555] px-2 py-0.5 hover:bg-[#FFF5EE] hover:text-[#FF6600] border border-[#ddd]">
+                    #{tag}
+                  </Link>
+                ))}
+              </div>
+              <Link href="/community" className="inline-block mt-1 bg-[#FF6600] text-white text-xs px-4 py-1.5 hover:bg-[#e55a00]">
+                コミュニティを見る
+              </Link>
+            </div>
+          </section>
 
           {/* サイト説明 */}
           <section className="bg-white border border-[#ddd] p-3">
