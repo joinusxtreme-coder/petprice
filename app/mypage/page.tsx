@@ -329,7 +329,10 @@ export default function MyPage() {
                       {pet.age_years != null && <span className="text-[#999] ml-2">{pet.age_years}歳</span>}
                       {pet.weight_kg != null && <span className="text-[#999] ml-2">{pet.weight_kg}kg</span>}
                     </div>
-                    <button onClick={() => deletePet(pet.id)} className="text-xs text-red-500 hover:underline">削除</button>
+                    <div className="flex items-center gap-2">
+                      <Link href={`/pet/${pet.id}`} className="text-xs text-[#0058B3] hover:underline">公開ページ</Link>
+                      <button onClick={() => deletePet(pet.id)} className="text-xs text-red-500 hover:underline">削除</button>
+                    </div>
                   </div>
                 ))}
               </div>

@@ -30,6 +30,10 @@ function RankBadge({ rank }: { rank: number }) {
   );
 }
 
+function isSaleBadge(name: string): boolean {
+  return /セール|クーポン|\d+%OFF|特価|限定価格|タイムセール/.test(name);
+}
+
 function extractFeatureTags(name: string): string[] {
   const tags: string[] = [];
   if (/グレインフリー|穀物不使用/.test(name)) tags.push('グレインフリー');
@@ -49,6 +53,7 @@ export default function ProductCard({ product, rank }: ProductCardProps) {
       ? Math.round((1 - product.current_price / product.prev_price) * 100)
       : null;
   const featureTags = extractFeatureTags(product.name);
+  const saleBadge = isSaleBadge(product.name);
 
   const stars = Math.round(product.review_average * 2) / 2; // 0.5刻み
   const fullStars = Math.floor(stars);
@@ -77,6 +82,11 @@ export default function ProductCard({ product, rank }: ProductCardProps) {
             />
           ) : (
             <div className="flex items-center justify-center h-full text-[#ccc] text-4xl">🐾</div>
+          )}
+          {saleBadge && (
+            <div className="absolute top-0 right-0 bg-[#FF0000] text-white text-xs font-bold px-1 py-0.5 z-10">
+              🔥 SALE
+            </div>
           )}
           {discountRate && discountRate >= 3 && (
             <div className="absolute bottom-0 right-0 bg-red-600 text-white text-xs font-bold px-1 py-0.5">

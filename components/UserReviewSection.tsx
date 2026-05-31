@@ -13,6 +13,7 @@ interface Review {
   body: string;
   helpful_count: number;
   created_at: string;
+  photo_url: string | null;
   user_profiles: { username: string | null } | null;
 }
 
@@ -32,6 +33,9 @@ export default function UserReviewSection({ productId }: Props) {
   const [rating, setRating] = useState(5);
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     fetchReviews();
@@ -42,7 +46,7 @@ export default function UserReviewSection({ productId }: Props) {
     setLoading(true);
     const { data } = await supabaseBrowser
       .from('user_reviews')
-      .select('id, rating, title, body, helpful_count, created_at, user_profiles(username)')
+      .select('id, rating, title, body, helpful_count, created_at, photo_url, user_profiles(username)')
       .eq('product_id', productId)
       .order('created_at', { ascending: false });
 
@@ -74,17 +78,52 @@ export default function UserReviewSection({ productId }: Props) {
     setReviews(prev => prev.map(r => r.id === reviewId ? { ...r, helpful_count: r.helpful_count + 1 } : r));
   }
 
+  function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      setError('画像は5MB以下にしてください');
+      return;
+    }
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
+  }
+
   async function handleSubmitReview(e: React.FormEvent) {
     e.preventDefault();
     if (!user) return;
     setSubmitting(true);
+    setUploading(false);
     setError('');
+
+    let photo_url: string | null = null;
+
+    // 写真アップロード
+    if (photoFile) {
+      setUploading(true);
+      const ext = photoFile.name.split('.').pop();
+      const path = `${user.id}/${Date.now()}.${ext}`;
+      const { error: uploadErr } = await supabaseBrowser.storage
+        .from('review-photos')
+        .upload(path, photoFile, { upsert: true });
+      if (uploadErr) {
+        setError('写真のアップロードに失敗しました: ' + uploadErr.message);
+        setSubmitting(false);
+        setUploading(false);
+        return;
+      }
+      const { data: urlData } = supabaseBrowser.storage.from('review-photos').getPublicUrl(path);
+      photo_url = urlData.publicUrl;
+      setUploading(false);
+    }
+
     const { error: err } = await supabaseBrowser.from('user_reviews').insert({
       user_id: user.id,
       product_id: productId,
       rating,
       title: title || null,
       body,
+      photo_url,
     });
     if (err) {
       setError(err.message);
@@ -92,6 +131,8 @@ export default function UserReviewSection({ productId }: Props) {
       setTitle('');
       setBody('');
       setRating(5);
+      setPhotoFile(null);
+      setPhotoPreview(null);
       await fetchReviews();
     }
     setSubmitting(false);
@@ -116,6 +157,10 @@ export default function UserReviewSection({ productId }: Props) {
                   {r.title && <span className="text-xs font-bold text-[#333]">{r.title}</span>}
                 </div>
                 <p className="text-xs text-[#555] leading-relaxed mb-2">{r.body}</p>
+                {r.photo_url && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={r.photo_url} alt="レビュー写真" className="w-24 h-24 object-cover border border-[#eee] mb-2" />
+                )}
                 <div className="flex items-center gap-4 text-xs text-[#999]">
                   <span>{r.user_profiles?.username || '匿名'}</span>
                   <span>{new Date(r.created_at).toLocaleDateString('ja-JP')}</span>
@@ -177,12 +222,28 @@ export default function UserReviewSection({ productId }: Props) {
                     placeholder="商品の使用感などを教えてください"
                   />
                 </div>
+                <div>
+                  <label className="block text-xs text-[#666] mb-1">写真（任意・5MB以下）</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoChange}
+                    className="text-xs text-[#666]"
+                  />
+                  {photoPreview && (
+                    <div className="mt-2 flex items-center gap-2">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={photoPreview} alt="プレビュー" className="w-20 h-20 object-cover border border-[#ddd]" />
+                      <button type="button" onClick={() => { setPhotoFile(null); setPhotoPreview(null); }} className="text-xs text-red-500 hover:underline">削除</button>
+                    </div>
+                  )}
+                </div>
                 <button
                   type="submit"
                   disabled={submitting}
                   className="bg-[#FF6600] text-white px-4 py-2 text-xs font-bold hover:bg-[#e55a00] disabled:opacity-50"
                 >
-                  {submitting ? '投稿中...' : 'レビューを投稿する'}
+                  {uploading ? '写真アップロード中...' : submitting ? '投稿中...' : 'レビューを投稿する'}
                 </button>
               </form>
             </div>

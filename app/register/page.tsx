@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
 
 export default function RegisterPage() {
-  const { signUp, signInWithGoogle } = useAuth();
+  const { signUp, signInWithGoogle, signInWithLine } = useAuth();
   const router = useRouter();
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -90,6 +90,15 @@ export default function RegisterPage() {
                 <path fill="#EA4335" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.3z"/>
               </svg>
               Googleで登録（ワンクリック）
+            </button>
+
+            {/* LINEで登録 */}
+            <button
+              onClick={() => signInWithLine()}
+              className="w-full flex items-center justify-center gap-3 border border-[#06C755] bg-[#06C755] py-2.5 text-sm font-bold text-white hover:bg-[#05b14d] transition-colors mb-4"
+            >
+              <svg width="20" height="20" viewBox="0 0 48 48" fill="white"><path d="M24 4C12.95 4 4 11.82 4 21.5c0 8.17 6.5 15.04 15.5 17.03L24 44l4.5-5.47C37.5 36.54 44 29.67 44 21.5 44 11.82 35.05 4 24 4z"/></svg>
+              LINEで登録（ワンクリック）
             </button>
 
             <div className="flex items-center gap-3 mb-4">

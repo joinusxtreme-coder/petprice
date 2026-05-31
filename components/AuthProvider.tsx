@@ -10,6 +10,7 @@ interface AuthContextType {
   signIn: (email: string, pass: string) => Promise<{ error: string | null }>;
   signUp: (email: string, pass: string, username: string) => Promise<{ error: string | null; needsConfirmation?: boolean }>;
   signInWithGoogle: () => Promise<void>;
+  signInWithLine: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -19,6 +20,7 @@ export const AuthContext = createContext<AuthContextType>({
   signIn: async () => ({ error: null }),
   signUp: async () => ({ error: null, needsConfirmation: false }),
   signInWithGoogle: async () => {},
+  signInWithLine: async () => {},
   signOut: async () => {},
 });
 
@@ -72,12 +74,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }
 
+  async function signInWithLine() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await supabaseBrowser.auth.signInWithOAuth({
+      provider: 'line' as any,
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+  }
+
   async function signOut() {
     await supabaseBrowser.auth.signOut();
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signUp, signInWithGoogle, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signUp, signInWithGoogle, signInWithLine, signOut }}>
       {children}
     </AuthContext.Provider>
   );
