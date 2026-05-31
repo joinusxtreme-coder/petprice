@@ -17,6 +17,7 @@ import RecentlyViewed from '@/components/RecentlyViewed';
 import SubscriptionSimulator from '@/components/SubscriptionSimulator';
 import PetRecommendations from '@/components/PetRecommendations';
 import { CATEGORY_CONFIG, SIDEBAR_GROUPS } from '@/app/[category]/page';
+import { extractItemCode, fetchItemDetail, parseItemCaption } from '@/lib/rakuten';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -58,6 +59,11 @@ export default async function ProductPage({ params }: PageProps) {
 
   if (!product) notFound();
 
+  // 楽天APIから正確なスペック情報を取得（1時間キャッシュ）
+  const itemCode = extractItemCode(product.item_url || product.affiliate_url || '');
+  const rakutenDetail = itemCode ? await fetchItemDetail(itemCode) : null;
+  const apiSpec = rakutenDetail ? parseItemCaption(rakutenDetail.itemCaption) : null;
+
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
   const prevHistory = (history || []).filter((h: { recorded_at: string }) => new Date(h.recorded_at) < yesterday);
@@ -87,15 +93,15 @@ export default async function ProductPage({ params }: PageProps) {
   const allPrices = (history || []).map((h: { price: number }) => h.price);
   const minPrice = allPrices.length > 0 ? Math.min(...allPrices) : null;
 
-  // 商品名からスペック情報を抽出
+  // 商品名から信頼性の高い情報のみ抽出（不確かなものは返さない）
   function extractProductInfo(name: string, price: number, category: string) {
-    // ジャンル
+    // ジャンル（療法食・サプリは商品名に明記されるので信頼性高）
     let genre = config?.label || '';
     if (/療法食|処方食/.test(name)) genre = '療養・療法食';
     else if (/サプリ|サプリメント/.test(name)) genre = 'サプリメント';
     else if (/グレインフリー|穀物不使用/.test(name)) genre = 'グレインフリー';
 
-    // タイプ（フード系）
+    // タイプ（商品名に明記される）
     let type = '';
     if (category.includes('food') || category.includes('snack')) {
       if (/フリーズドライ/.test(name)) type = 'フリーズドライ';
@@ -120,11 +126,9 @@ export default async function ProductPage({ params }: PageProps) {
       else if (/キャリー|バッグ/.test(name)) type = 'キャリーバッグ';
     }
 
-    // 内容量（×N袋 対応・複数パターン）
+    // 内容量（商品名に kg/g が明示されるので高信頼）
     let weight = '';
     let weightKg = 0;
-
-    // パターン1: "1.5kg×6袋" / "500g × 4"
     const multiKgMatch = name.match(/(\d+(?:\.\d+)?)\s*(kg|g)\s*[×xX×]\s*(\d+)/i);
     if (multiKgMatch) {
       const val = parseFloat(multiKgMatch[1]);
@@ -135,42 +139,33 @@ export default async function ProductPage({ params }: PageProps) {
       const totalLabel = weightKg >= 1 ? `${weightKg}kg` : `${weightKg * 1000}g`;
       weight = `${multiKgMatch[1]}${multiKgMatch[2]}×${cnt}袋（計${totalLabel}）`;
     } else {
-      // パターン2: 通常の重量 "3kg", "500g", "(3kg)", "【3kg】"
       const wm = name.match(/(?:^|[\s（(【])(\d+(?:\.\d+)?)\s*(kg|g)(?![a-zA-Z])/i)
         || name.match(/(\d+(?:\.\d+)?)\s*(kg|g)(?![a-zA-Z])/i);
       if (wm) {
-        const idx = wm.length === 3 ? 1 : 1;
-        weight = `${wm[idx]}${wm[idx + 1]}`;
-        weightKg = wm[idx + 1].toLowerCase() === 'kg' ? parseFloat(wm[idx]) : parseFloat(wm[idx]) / 1000;
+        weight = `${wm[1]}${wm[2]}`;
+        weightKg = wm[2].toLowerCase() === 'kg' ? parseFloat(wm[1]) : parseFloat(wm[1]) / 1000;
       }
     }
 
-    // 枚・個・本（ペットシーツなど）
+    // 枚・個・本（ペットシーツなど - 商品名に明記）
     const countMatch = name.match(/(\d+(?:,\d+)?)\s*(枚|個|本|袋|食|粒|包|シート)(?:入|セット|まとめ|×\d+)?/);
     let count = '';
     if (countMatch) count = `${countMatch[1].replace(',', '')}${countMatch[2]}`;
 
-    // カロリー（商品名から抽出）
-    let calorie = '';
-    const calPer100g = name.match(/(\d+(?:\.\d+)?)\s*[Kk][Cc]al\s*\/\s*100\s*g/);
-    const calTotal = name.match(/(\d+(?:\.\d+)?)\s*[Kk][Cc]al(?!\/)/);
-    if (calPer100g) calorie = `${calPer100g[1]} kcal/100g`;
-    else if (calTotal) calorie = `${calTotal[1]} kcal`;
-
-    // 1kgあたり価格（フード系のみ）
+    // 1kgあたり価格（内容量が確定している場合のみ）
     let pricePerKg = '';
     if (weightKg > 0 && (category.includes('food') || category.includes('snack'))) {
       pricePerKg = `${Math.round(price / weightKg).toLocaleString()} 円/kg`;
     }
 
-    // 対象年齢
+    // 対象年齢（商品名に明記されている場合のみ - デフォルト値なし）
     let ageGroup = '';
     if (/パピー|子犬|子猫|キトン|幼犬|幼猫|1歳未満/.test(name)) ageGroup = 'パピー・子猫用';
     else if (/シニア|高齢|老犬|老猫|7歳以上|11歳以上|12歳以上|7才以上|11才以上/.test(name)) ageGroup = 'シニア用（7歳以上）';
     else if (/成犬|成猫|アダルト|1歳以上/.test(name)) ageGroup = '成犬・成猫用';
-    else if (category.includes('food') || category.includes('snack')) ageGroup = '全年齢対応';
+    // ※ 「全年齢対応」はデフォルトで表示しない（不確かなため）
 
-    // 対象サイズ（犬の場合）
+    // 対象サイズ（商品名に明記されている場合のみ）
     let size = '';
     if (category.startsWith('dog')) {
       if (/超小型犬|トイ(?:プードル|サイズ)/.test(name)) size = '超小型犬（〜4kg）';
@@ -178,6 +173,7 @@ export default async function ProductPage({ params }: PageProps) {
       else if (/中型犬/.test(name)) size = '中型犬（10〜25kg）';
       else if (/大型犬/.test(name)) size = '大型犬（25kg以上）';
       else if (/全犬種|全サイズ|すべてのサイズ/.test(name)) size = '全犬種対応';
+      // ※ デフォルト値なし
     }
 
     // サイズ表記（服・キャリーなど）
@@ -187,55 +183,48 @@ export default async function ProductPage({ params }: PageProps) {
       if (sizeM) itemSize = sizeM[1];
     }
 
-    // 特徴・用途（○表示用）
-    const features: { label: string; on: boolean }[] = [
-      { label: '皮膚・被毛ケア', on: /皮膚|スキン|被毛|毛並み|アレルギー性皮膚|ハーブ.*肌/.test(name) },
-      { label: '消化器ケア用', on: /消化器|消化サポート|胃腸|便秘|下痢|整腸/.test(name) },
-      { label: '関節ケア用', on: /関節|グルコサミン|コンドロイチン|関節炎|軟骨/.test(name) },
-      { label: '泌尿器ケア用', on: /尿路|泌尿器|ストルバイト|シュウ酸|FLUTD|膀胱/.test(name) },
-      { label: '体重管理用', on: /ライト|低カロリー|ダイエット|体重管理|肥満|ウェイト|減量/.test(name) },
-      { label: '毛玉ケア用', on: /毛玉|ヘアボール/.test(name) },
-      { label: 'アレルギー対応', on: /アレルギー|低アレルゲン|グレインフリー|穀物不使用|無グルテン/.test(name) },
-      { label: '療法食', on: /療法食|処方食|メディカル/.test(name) },
-      { label: '免疫サポート', on: /免疫|抗酸化|ポリフェノール/.test(name) },
-      { label: '心臓ケア用', on: /心臓|心疾患|タウリン.*心/.test(name) },
-      { label: '腎臓ケア用', on: /腎臓|腎不全|腎サポート/.test(name) },
-      { label: '無添加', on: /無添加/.test(name) },
-      { label: '国産', on: /国産/.test(name) },
-      { label: 'オーガニック', on: /オーガニック|有機/.test(name) },
-      { label: '送料無料', on: /送料無料/.test(name) },
-    ].filter(f => f.on);
+    // 特徴・用途（商品名に明記されている場合のみ - 高信頼）
+    const features: { label: string }[] = [
+      { label: '皮膚・被毛ケア' },
+      { label: '消化器ケア用' },
+      { label: '関節ケア用' },
+      { label: '泌尿器ケア用' },
+      { label: '体重管理用' },
+      { label: '毛玉ケア用' },
+      { label: 'アレルギー対応' },
+      { label: '療法食' },
+      { label: '免疫サポート' },
+      { label: '心臓ケア用' },
+      { label: '腎臓ケア用' },
+      { label: '無添加' },
+      { label: '国産' },
+      { label: 'オーガニック' },
+      { label: '送料無料' },
+    ].filter((f) => {
+      const checks: Record<string, RegExp> = {
+        '皮膚・被毛ケア': /皮膚|スキン|被毛|毛並み/,
+        '消化器ケア用': /消化器|消化サポート|胃腸|便秘|下痢|整腸/,
+        '関節ケア用': /関節|グルコサミン|コンドロイチン/,
+        '泌尿器ケア用': /尿路|泌尿器|ストルバイト|シュウ酸|FLUTD|膀胱/,
+        '体重管理用': /ライト|低カロリー|ダイエット|体重管理|肥満|ウェイト|減量/,
+        '毛玉ケア用': /毛玉|ヘアボール/,
+        'アレルギー対応': /アレルギー|低アレルゲン|グレインフリー|穀物不使用/,
+        '療法食': /療法食|処方食/,
+        '免疫サポート': /免疫|抗酸化/,
+        '心臓ケア用': /心臓|心疾患/,
+        '腎臓ケア用': /腎臓|腎不全|腎サポート/,
+        '無添加': /無添加/,
+        '国産': /国産/,
+        'オーガニック': /オーガニック|有機/,
+        '送料無料': /送料無料/,
+      };
+      return checks[f.label]?.test(name) ?? false;
+    });
 
-    // 主原料（タンパク質源）
-    let mainIngredient = '';
-    if (category.includes('food') || category.includes('snack')) {
-      const ingredients = [
-        { pattern: /チキン|鶏肉|鶏/, label: 'チキン（鶏肉）' },
-        { pattern: /サーモン|鮭/, label: 'サーモン（鮭）' },
-        { pattern: /ラム|羊肉/, label: 'ラム（羊肉）' },
-        { pattern: /マグロ|ツナ|まぐろ/, label: 'マグロ' },
-        { pattern: /牛肉|ビーフ/, label: 'ビーフ（牛肉）' },
-        { pattern: /ポーク|豚肉/, label: 'ポーク（豚肉）' },
-        { pattern: /カツオ|かつお/, label: 'かつお' },
-        { label: 'ダック（鴨肉）', pattern: /ダック|鴨肉/ },
-        { label: 'ベニソン（鹿肉）', pattern: /ベニソン|鹿肉/ },
-        { label: 'ターキー（七面鳥）', pattern: /ターキー|七面鳥/ },
-        { label: 'カンガルー', pattern: /カンガルー/ },
-        { label: 'タラ・白身魚', pattern: /タラ|白身魚|ホワイトフィッシュ/ },
-        { label: 'エビ', pattern: /えび|エビ/ },
-      ];
-      for (const ing of ingredients) {
-        if (ing.pattern.test(name)) {
-          mainIngredient = ing.label;
-          break;
-        }
-      }
-    }
-
-    // メーカー・ブランド名の抽出
+    // メーカー（商品名に明記されているブランドのみ - 高信頼）
     let maker = '';
     const makerPatterns = [
-      { pattern: /ヒルズ|Hill's|HILL'S/i, label: 'ヒルズ（Hill\'s）' },
+      { pattern: /ヒルズ|Hill's|HILL'S/i, label: "ヒルズ（Hill's）" },
       { pattern: /ロイヤルカナン|Royal Canin/i, label: 'ロイヤルカナン' },
       { pattern: /ニュートロ|Nutro/i, label: 'ニュートロ（Nutro）' },
       { pattern: /アカナ|ACANA/i, label: 'アカナ（ACANA）' },
@@ -246,22 +235,26 @@ export default async function ProductPage({ params }: PageProps) {
       { pattern: /サイエンス・ダイエット/i, label: 'ヒルズ サイエンス・ダイエット' },
       { pattern: /INABA|いなば/i, label: 'いなばペットフード' },
       { pattern: /アイシア|Aixia/i, label: 'アイシア' },
-      { pattern: /カルカン|Kalkun/i, label: 'カルカン（Mars）' },
+      { pattern: /カルカン/i, label: 'カルカン（Mars）' },
       { pattern: /デビフ|d\.b\.f/i, label: 'デビフ' },
       { pattern: /グランデリ/i, label: 'グランデリ（ドギーマン）' },
     ];
     for (const m of makerPatterns) {
-      if (m.pattern.test(name)) {
-        maker = m.label;
-        break;
-      }
+      if (m.pattern.test(name)) { maker = m.label; break; }
     }
 
-    return { genre, type, weight, count, calorie, pricePerKg, ageGroup, size, itemSize, features, mainIngredient, maker };
+    return { genre, type, weight, count, pricePerKg, ageGroup, size, itemSize, features, maker };
   }
 
   const specData = extractProductInfo(product.name, product.current_price, product.category);
   const isFoodCategory = ['dog-food','cat-food','dog-snack','cat-snack','bird-food','small-animal-food','fish-food','reptile-food'].includes(product.category);
+
+  // APIから取得したスペック（優先）。内容量はAPIの方が詳細な場合に上書き
+  const displayWeight = apiSpec?.weightFromCaption || specData.weight;
+  const displayCalorie = apiSpec?.calorie || '';  // 商品名からは取らない（不正確なため）
+  const displayIngredients = apiSpec?.ingredients || '';
+  const displayGuaranteedAnalysis = apiSpec?.guaranteedAnalysis || '';
+  const displayCatchcopy = rakutenDetail?.catchcopy || product.description || '';
 
   return (
     <div className="min-h-screen bg-[#F0F0F0]" style={{ fontFamily: 'Meiryo, "Hiragino Kaku Gothic Pro", sans-serif' }}>
@@ -489,17 +482,17 @@ export default async function ProductPage({ params }: PageProps) {
               </h2>
             </div>
             <div className="p-3">
-              {/* catchcopy（楽天店舗の紹介文） */}
-              {product.description && (
+              {/* キャッチコピー（楽天APIから取得） */}
+              {displayCatchcopy && (
                 <p className="text-xs text-[#555] bg-[#f8f8f8] border border-[#ddd] px-3 py-2 mb-3 leading-relaxed">
-                  {product.description}
+                  {displayCatchcopy}
                 </p>
               )}
 
               <div className="flex gap-4 flex-wrap md:flex-nowrap">
                 {/* 左：製品情報テーブル */}
                 <div className="flex-1 min-w-0">
-                  <div className="bg-[#0058B3] text-white text-xs font-bold px-3 py-1.5 mb-0">製品情報</div>
+                  <div className="bg-[#0058B3] text-white text-xs font-bold px-3 py-1.5">製品情報</div>
                   <table className="w-full text-xs border border-[#ddd] border-t-0">
                     <tbody>
                       {specData.maker && (
@@ -520,10 +513,10 @@ export default async function ProductPage({ params }: PageProps) {
                           <td className="px-3 py-2 text-[#0058B3]">{specData.type}</td>
                         </tr>
                       )}
-                      {(specData.weight || specData.count) && (
+                      {(displayWeight || specData.count) && (
                         <tr className="border-b border-[#eee]">
                           <td className="bg-[#f5f5f5] px-3 py-2 font-bold text-[#555] border-r border-[#eee]">内容量</td>
-                          <td className="px-3 py-2">{[specData.weight, specData.count].filter(Boolean).join(' / ')}</td>
+                          <td className="px-3 py-2">{[displayWeight, specData.count].filter(Boolean).join(' / ')}</td>
                         </tr>
                       )}
                       {specData.ageGroup && (
@@ -544,22 +537,24 @@ export default async function ProductPage({ params }: PageProps) {
                           <td className="px-3 py-2 text-[#0058B3] font-bold">{specData.itemSize}</td>
                         </tr>
                       )}
-                      {specData.mainIngredient && (
-                        <tr className="border-b border-[#eee]">
-                          <td className="bg-[#f5f5f5] px-3 py-2 font-bold text-[#555] border-r border-[#eee]">主原料</td>
-                          <td className="px-3 py-2 text-[#0058B3] font-bold">{specData.mainIngredient}</td>
-                        </tr>
-                      )}
-                      {specData.calorie && (
+                      {/* カロリー：楽天APIから取得した場合のみ表示 */}
+                      {displayCalorie && (
                         <tr className="border-b border-[#eee]">
                           <td className="bg-[#f5f5f5] px-3 py-2 font-bold text-[#555] border-r border-[#eee]">カロリー</td>
-                          <td className="px-3 py-2 text-[#0058B3]">{specData.calorie}</td>
+                          <td className="px-3 py-2 text-[#0058B3]">{displayCalorie}</td>
+                        </tr>
+                      )}
+                      {/* 保証成分：楽天APIから取得した場合のみ表示 */}
+                      {displayGuaranteedAnalysis && (
+                        <tr className="border-b border-[#eee]">
+                          <td className="bg-[#f5f5f5] px-3 py-2 font-bold text-[#555] border-r border-[#eee]">保証成分</td>
+                          <td className="px-3 py-2 text-xs text-[#333]">{displayGuaranteedAnalysis}</td>
                         </tr>
                       )}
                       {specData.pricePerKg && isFoodCategory && (
                         <tr className="border-b border-[#eee]">
                           <td className="bg-[#f5f5f5] px-3 py-2 font-bold text-[#555] border-r border-[#eee]">1kgあたり価格</td>
-                          <td className="px-3 py-2">{specData.pricePerKg}</td>
+                          <td className="px-3 py-2 font-bold text-[#CC0000]">{specData.pricePerKg}</td>
                         </tr>
                       )}
                       <tr>
@@ -573,7 +568,7 @@ export default async function ProductPage({ params }: PageProps) {
                 {/* 右：特徴・用途 */}
                 {specData.features.length > 0 && (
                   <div className="w-52 shrink-0">
-                    <div className="bg-[#0058B3] text-white text-xs font-bold px-3 py-1.5 mb-0">特徴・用途</div>
+                    <div className="bg-[#0058B3] text-white text-xs font-bold px-3 py-1.5">特徴・用途</div>
                     <table className="w-full text-xs border border-[#ddd] border-t-0">
                       <tbody>
                         {specData.features.map((f) => (
@@ -590,10 +585,35 @@ export default async function ProductPage({ params }: PageProps) {
                 )}
               </div>
 
-              <p className="text-xs text-[#999] mt-2">
-                ※ スペック情報は商品名から自動抽出しています。詳細は楽天市場の商品ページをご確認ください。<br />
-                ※ 空白部分は未調査の項目です。
-              </p>
+              {/* 原材料：楽天APIから取得した場合のみ表示 */}
+              {displayIngredients && (
+                <div className="mt-3">
+                  <div className="bg-[#0058B3] text-white text-xs font-bold px-3 py-1.5">原材料</div>
+                  <div className="border border-[#ddd] border-t-0 px-3 py-2 text-xs text-[#333] leading-relaxed">
+                    {displayIngredients}
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-2 flex items-center gap-2">
+                {rakutenDetail ? (
+                  <span className="text-xs text-[#009900] bg-[#f0fff0] border border-[#99cc99] px-2 py-0.5">
+                    ✓ 楽天市場の商品情報から取得
+                  </span>
+                ) : (
+                  <span className="text-xs text-[#999]">
+                    ※ スペック情報は商品名から抽出。確認は楽天市場の商品ページで
+                  </span>
+                )}
+                <a
+                  href={product.item_url || '#'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-[#0058B3] hover:underline ml-auto"
+                >
+                  楽天市場の商品ページで詳細を確認 →
+                </a>
+              </div>
             </div>
           </div>
 
