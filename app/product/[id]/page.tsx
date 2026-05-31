@@ -14,6 +14,7 @@ import UserReviewSection from '@/components/UserReviewSection';
 import CompareButton from '@/components/CompareButton';
 import RecordHistory from '@/components/RecordHistory';
 import RecentlyViewed from '@/components/RecentlyViewed';
+import SubscriptionSimulator from '@/components/SubscriptionSimulator';
 import { CATEGORY_CONFIG, SIDEBAR_GROUPS } from '@/app/[category]/page';
 
 interface PageProps {
@@ -536,6 +537,9 @@ export default async function ProductPage({ params }: PageProps) {
               <AlertForm productId={product.id} currentPrice={product.current_price} />
             </div>
           </div>
+
+          {/* 定期購入シミュレーター */}
+          <SubscriptionSimulator price={product.current_price} name={product.name} />
 
           {/* 閲覧履歴 */}
           <RecentlyViewed excludeId={product.id} />

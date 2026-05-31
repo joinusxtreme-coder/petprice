@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/components/AuthProvider';
 import { supabaseBrowser } from '@/lib/supabase-browser';
+import HelpfulButton from '@/components/HelpfulButton';
 
 interface Review {
   id: string;
@@ -118,12 +119,7 @@ export default function UserReviewSection({ productId }: Props) {
                 <div className="flex items-center gap-4 text-xs text-[#999]">
                   <span>{r.user_profiles?.username || '匿名'}</span>
                   <span>{new Date(r.created_at).toLocaleDateString('ja-JP')}</span>
-                  <button
-                    onClick={() => handleHelpful(r.id)}
-                    className="text-[#0058B3] hover:underline"
-                  >
-                    参考になった ({r.helpful_count})
-                  </button>
+                  <HelpfulButton reviewId={r.id} />
                 </div>
               </div>
             ))}

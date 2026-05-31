@@ -68,8 +68,9 @@ export default function SiteHeader() {
         <nav className="border-t border-[#eee] bg-[#f8f8f8]">
           <div className="max-w-5xl mx-auto px-3 flex gap-4 text-xs py-1">
             <Link href="/" className="text-[#0058B3] hover:text-[#FF6600]">トップ</Link>
-            <Link href="/community" className="text-[#0058B3] hover:text-[#FF6600]">コミュニティ</Link>
-            <Link href="/dog-food" className="text-[#0058B3] hover:text-[#FF6600]">ランキング</Link>
+            <Link href="/ranking" className="text-[#0058B3] hover:text-[#FF6600] font-bold">🏆 ランキング</Link>
+            <Link href="/community" className="text-[#0058B3] hover:text-[#FF6600]">💬 コミュニティ</Link>
+            <Link href="/compare" className="text-[#0058B3] hover:text-[#FF6600]">⚖️ 比較</Link>
           </div>
         </nav>
       </header>
