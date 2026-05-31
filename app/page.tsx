@@ -21,7 +21,7 @@ interface ProductWithHistory extends Product {
   price_history?: { price: number; recorded_at: string }[];
 }
 
-async function getRanking(category: string, limit = 4): Promise<Product[]> {
+async function getRanking(category: string, limit = 5): Promise<Product[]> {
   const { data } = await supabase
     .from('products')
     .select('id, name, image_url, current_price, review_count, review_average, shop_name')
@@ -31,7 +31,7 @@ async function getRanking(category: string, limit = 4): Promise<Product[]> {
   return (data as Product[]) || [];
 }
 
-async function getDogRanking(limit = 4): Promise<Product[]> {
+async function getDogRanking(limit = 5): Promise<Product[]> {
   const { data } = await supabase
     .from('products')
     .select('id, name, image_url, current_price, review_count, review_average, shop_name')
@@ -66,10 +66,12 @@ async function getPriceDrop(): Promise<Product[]> {
 }
 
 export default async function HomePage() {
-  const [dogRanking, dogFoodRanking, catFoodRanking, dropped] = await Promise.all([
-    getDogRanking(4),
-    getRanking('dog-food', 4),
-    getRanking('cat-food', 4),
+  const [dogRanking, dogFoodRanking, catFoodRanking, catSnackRanking, petSheetsRanking, dropped] = await Promise.all([
+    getDogRanking(5),
+    getRanking('dog-food', 5),
+    getRanking('cat-food', 5),
+    getRanking('cat-snack', 5),
+    getRanking('pet-sheets', 5),
     getPriceDrop(),
   ]);
 
@@ -168,7 +170,7 @@ export default async function HomePage() {
               {dogRanking.length === 0 ? (
                 <p className="text-xs text-[#999] p-3">データ取得中...</p>
               ) : (
-                <div className="grid grid-cols-4 divide-x divide-[#eee] p-2">
+                <div className="grid grid-cols-5 divide-x divide-[#eee] p-2">
                   {dogRanking.map((p, i) => (
                     <ProductCard key={p.id} product={p} rank={i + 1} />
                   ))}
@@ -185,7 +187,7 @@ export default async function HomePage() {
               {dogFoodRanking.length === 0 ? (
                 <p className="text-xs text-[#999] p-3">データ取得中...</p>
               ) : (
-                <div className="grid grid-cols-4 divide-x divide-[#eee] p-2">
+                <div className="grid grid-cols-5 divide-x divide-[#eee] p-2">
                   {dogFoodRanking.map((p, i) => (
                     <ProductCard key={p.id} product={p} rank={i + 1} />
                   ))}
@@ -194,7 +196,7 @@ export default async function HomePage() {
             </div>
 
             {/* キャットフード 人気ランキング */}
-            <div>
+            <div className="border-b border-[#eee]">
               <div className="flex items-center justify-between px-3 py-1.5 border-b border-[#eee] bg-[#fafafa]">
                 <span className="text-xs font-bold text-[#333]">キャットフード 人気ランキング</span>
                 <Link href="/cat-food" className="text-xs text-[#0058B3] hover:underline">キャットフード 人気ランキング ›</Link>
@@ -202,8 +204,42 @@ export default async function HomePage() {
               {catFoodRanking.length === 0 ? (
                 <p className="text-xs text-[#999] p-3">データ取得中...</p>
               ) : (
-                <div className="grid grid-cols-4 divide-x divide-[#eee] p-2">
+                <div className="grid grid-cols-5 divide-x divide-[#eee] p-2">
                   {catFoodRanking.map((p, i) => (
+                    <ProductCard key={p.id} product={p} rank={i + 1} />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 猫のおやつ 人気ランキング */}
+            <div className="border-b border-[#eee]">
+              <div className="flex items-center justify-between px-3 py-1.5 border-b border-[#eee] bg-[#fafafa]">
+                <span className="text-xs font-bold text-[#333]">猫のおやつ 人気ランキング</span>
+                <Link href="/cat-snack" className="text-xs text-[#0058B3] hover:underline">猫のおやつ 人気ランキング ›</Link>
+              </div>
+              {catSnackRanking.length === 0 ? (
+                <p className="text-xs text-[#999] p-3">データ取得中...</p>
+              ) : (
+                <div className="grid grid-cols-5 divide-x divide-[#eee] p-2">
+                  {catSnackRanking.map((p, i) => (
+                    <ProductCard key={p.id} product={p} rank={i + 1} />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* ペットシーツ 人気ランキング */}
+            <div>
+              <div className="flex items-center justify-between px-3 py-1.5 border-b border-[#eee] bg-[#fafafa]">
+                <span className="text-xs font-bold text-[#333]">ペットシーツ 人気ランキング</span>
+                <Link href="/pet-sheets" className="text-xs text-[#0058B3] hover:underline">ペットシーツ 人気ランキング ›</Link>
+              </div>
+              {petSheetsRanking.length === 0 ? (
+                <p className="text-xs text-[#999] p-3">データ取得中...</p>
+              ) : (
+                <div className="grid grid-cols-5 divide-x divide-[#eee] p-2">
+                  {petSheetsRanking.map((p, i) => (
                     <ProductCard key={p.id} product={p} rank={i + 1} />
                   ))}
                 </div>

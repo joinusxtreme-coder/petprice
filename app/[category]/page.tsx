@@ -113,6 +113,15 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
     .order('review_count', { ascending: false })
     .limit(5);
 
+  // 満足度ランキング（評価順）
+  const { data: ratingTop } = await supabase
+    .from('products')
+    .select('id, name, image_url, current_price, review_count, review_average, shop_name')
+    .eq('category', config.dbCategory)
+    .gte('review_count', 5)
+    .order('review_average', { ascending: false })
+    .limit(5);
+
   // 新着商品（過去60日以内に登録/更新）
   const since60 = new Date();
   since60.setDate(since60.getDate() - 60);
@@ -124,6 +133,21 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
     .order('updated_at', { ascending: false })
     .limit(4);
 
+  // ブランド一覧（サイドバー用）
+  const { data: brandRows } = await supabase
+    .from('products')
+    .select('brand')
+    .eq('category', config.dbCategory)
+    .not('brand', 'is', null)
+    .neq('brand', '');
+  const brandCounts: Record<string, number> = {};
+  for (const row of brandRows || []) {
+    if (row.brand) brandCounts[row.brand] = (brandCounts[row.brand] || 0) + 1;
+  }
+  const brands = Object.entries(brandCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10);
+
   // 全製品（絞り込み・ページング）
   let query = supabase
     .from('products')
@@ -134,6 +158,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
   if (sp.maxPrice) query = query.lte('current_price', Number(sp.maxPrice));
   if (sp.age && sp.age !== 'all') query = query.eq('age_group', sp.age);
   if (sp.minReview) query = query.gte('review_average', Number(sp.minReview));
+  if (sp.brand) query = query.eq('brand', sp.brand);
 
   if (sort === 'price_asc') query = query.order('current_price', { ascending: true });
   else if (sort === 'price_desc') query = query.order('current_price', { ascending: false });
@@ -253,6 +278,28 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
             </form>
           </div>
 
+          {/* ブランドフィルター */}
+          {brands.length > 0 && (
+            <div className="bg-white border border-[#ddd]">
+              <div className="bg-[#666] text-white text-xs font-bold px-2 py-1">シリーズ・ブランド</div>
+              {brands.map(([brand, cnt]) => (
+                <Link
+                  key={brand}
+                  href={`/${category}?brand=${encodeURIComponent(brand)}`}
+                  className={`flex justify-between items-center px-2 py-1 text-xs border-t border-[#eee] hover:bg-[#FFF5EE] ${sp.brand === brand ? 'text-[#FF6600] font-bold bg-[#FFF5EE]' : 'text-[#0058B3]'}`}
+                >
+                  <span>{brand}</span>
+                  <span className="text-[#999]">({cnt})</span>
+                </Link>
+              ))}
+              {sp.brand && (
+                <Link href={`/${category}`} className="block text-center text-xs text-[#999] hover:text-[#FF6600] py-1 border-t border-[#eee]">
+                  ✕ クリア
+                </Link>
+              )}
+            </div>
+          )}
+
           {/* カテゴリ一覧（サブグループ付き） */}
           <div className="bg-white border border-[#ddd]">
             <div className="bg-[#f0f0f0] text-[#555] text-xs font-bold px-2 py-1.5 border-b border-[#ddd]">カテゴリ一覧</div>
@@ -341,6 +388,21 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
             </section>
           )}
 
+          {/* 満足度ランキング */}
+          {ratingTop && ratingTop.length > 0 && !isFiltered && page === 1 && (
+            <section className="bg-white border border-[#ddd]">
+              <div className="flex items-center justify-between px-3 py-2 border-b border-[#ddd] bg-[#f8f8f8]">
+                <h2 className="text-sm font-bold text-[#333]">⭐ {config.label} 満足度ランキング</h2>
+                <span className="text-xs text-[#999]">レビュー評価順</span>
+              </div>
+              <div className="grid grid-cols-5 divide-x divide-[#eee] p-2">
+                {(ratingTop as { id: string; name: string; image_url: string | null; current_price: number; review_count: number; review_average: number; shop_name?: string }[]).map((p, i) => (
+                  <ProductCard key={p.id} product={p} rank={i + 1} />
+                ))}
+              </div>
+            </section>
+          )}
+
           {/* 新着商品（登録60日以内） */}
           {newProducts && newProducts.length > 0 && !isFiltered && page === 1 && (
             <section className="bg-white border border-[#ddd]">
@@ -391,7 +453,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
                 <p className="text-xs mt-1">毎日3時に商品を自動取得しています</p>
               </div>
             ) : (
-              <div className="grid grid-cols-4 divide-x divide-y divide-[#eee]">
+              <div className="grid grid-cols-5 divide-x divide-y divide-[#eee]">
                 {(products as { id: string; name: string; image_url: string | null; current_price: number; review_count: number; review_average: number; shop_name?: string }[]).map((p, i) => (
                   <ProductCard
                     key={p.id}
