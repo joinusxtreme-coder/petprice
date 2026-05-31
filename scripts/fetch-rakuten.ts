@@ -94,14 +94,6 @@ const GENRE_CATEGORY: [string, string][] = [
   ['565726', 'fish-tank'],
   ['215405', 'fish-tank'],
   ['101217', 'fish-tank'],
-  // ── 水槽用品・水草
-  ['215403', 'fish-goods'],
-  ['215400', 'fish-goods'],
-  ['567261', 'fish-goods'],
-  ['215425', 'fish-goods'],
-  ['206322', 'fish-goods'],
-  ['203100', 'fish-goods'],
-  ['215402', 'fish-goods'],
   // ── 爬虫類えさ・用品
   ['560200', 'reptile-food'],
   ['101218', 'reptile-goods'],

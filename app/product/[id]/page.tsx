@@ -74,74 +74,120 @@ export default async function ProductPage({ params }: PageProps) {
     let genre = config?.label || '';
     if (/療法食|処方食/.test(name)) genre = '療養・療法食';
     else if (/サプリ|サプリメント/.test(name)) genre = 'サプリメント';
+    else if (/グレインフリー|穀物不使用/.test(name)) genre = 'グレインフリー';
 
-    // タイプ
+    // タイプ（フード系）
     let type = '';
-    if (/ドライ|乾燥/.test(name)) type = 'ドライタイプ';
-    else if (/パウチ/.test(name)) type = 'パウチ';
-    else if (/缶詰|缶/.test(name)) type = '缶詰';
-    else if (/ウェット/.test(name)) type = 'ウェットタイプ';
-    else if (/ジャーキー/.test(name)) type = 'ジャーキー';
-    else if (/ガム/.test(name)) type = 'ガム';
-    else if (/ビスケット|クッキー/.test(name)) type = 'ビスケット';
-    else if (/フリーズドライ/.test(name)) type = 'フリーズドライ';
+    if (category.includes('food') || category.includes('snack')) {
+      if (/フリーズドライ/.test(name)) type = 'フリーズドライ';
+      else if (/ドライ|乾燥|カリカリ/.test(name)) type = 'ドライタイプ';
+      else if (/パウチ/.test(name)) type = 'パウチ';
+      else if (/缶詰|缶/.test(name)) type = '缶詰';
+      else if (/ウェット|ウエット/.test(name)) type = 'ウェットタイプ';
+      else if (/ジャーキー/.test(name)) type = 'ジャーキー';
+      else if (/ガム/.test(name)) type = 'ガム';
+      else if (/ビスケット|クッキー/.test(name)) type = 'ビスケット';
+      else if (/半生|セミモイスト/.test(name)) type = '半生タイプ';
+    } else if (category === 'dog-clothes' || category === 'cat-goods') {
+      if (/ニット|セーター/.test(name)) type = 'ニット';
+      else if (/レインコート|カッパ/.test(name)) type = 'レインコート';
+      else if (/Tシャツ/.test(name)) type = 'Tシャツ';
+      else if (/パーカー|フーディー/.test(name)) type = 'パーカー';
+      else if (/ウェア|洋服|服/.test(name)) type = 'ウェア';
+    } else if (category === 'dog-carrier' || category === 'cat-carrier') {
+      if (/リュック|バックパック/.test(name)) type = 'リュック型';
+      else if (/スリング/.test(name)) type = 'スリング型';
+      else if (/カート/.test(name)) type = 'ペットカート';
+      else if (/キャリー|バッグ/.test(name)) type = 'キャリーバッグ';
+    }
 
-    // 内容量（複数パターン対応）
+    // 内容量（×N袋 対応・複数パターン）
     let weight = '';
     let weightKg = 0;
-    const wm = name.match(/(\d+(?:\.\d+)?)\s*(kg|g)(?![a-zA-Z])/i);
-    if (wm) {
-      weight = `${wm[1]}${wm[2]}`;
-      weightKg = wm[2].toLowerCase() === 'kg' ? parseFloat(wm[1]) : parseFloat(wm[1]) / 1000;
+
+    // パターン1: "1.5kg×6袋" / "500g × 4"
+    const multiKgMatch = name.match(/(\d+(?:\.\d+)?)\s*(kg|g)\s*[×xX×]\s*(\d+)/i);
+    if (multiKgMatch) {
+      const val = parseFloat(multiKgMatch[1]);
+      const unit = multiKgMatch[2].toLowerCase();
+      const cnt = parseInt(multiKgMatch[3]);
+      const singleKg = unit === 'kg' ? val : val / 1000;
+      weightKg = singleKg * cnt;
+      const totalLabel = weightKg >= 1 ? `${weightKg}kg` : `${weightKg * 1000}g`;
+      weight = `${multiKgMatch[1]}${multiKgMatch[2]}×${cnt}袋（計${totalLabel}）`;
+    } else {
+      // パターン2: 通常の重量 "3kg", "500g", "(3kg)", "【3kg】"
+      const wm = name.match(/(?:^|[\s（(【])(\d+(?:\.\d+)?)\s*(kg|g)(?![a-zA-Z])/i)
+        || name.match(/(\d+(?:\.\d+)?)\s*(kg|g)(?![a-zA-Z])/i);
+      if (wm) {
+        const idx = wm.length === 3 ? 1 : 1;
+        weight = `${wm[idx]}${wm[idx + 1]}`;
+        weightKg = wm[idx + 1].toLowerCase() === 'kg' ? parseFloat(wm[idx]) : parseFloat(wm[idx]) / 1000;
+      }
     }
-    // 枚・個・本
-    const countMatch = name.match(/(\d+(?:,\d+)?)\s*(枚|個|本|袋|食)(?:入|セット|まとめ)?/);
+
+    // 枚・個・本（ペットシーツなど）
+    const countMatch = name.match(/(\d+(?:,\d+)?)\s*(枚|個|本|袋|食|粒|包|シート)(?:入|セット|まとめ|×\d+)?/);
     let count = '';
     if (countMatch) count = `${countMatch[1].replace(',', '')}${countMatch[2]}`;
 
     // カロリー（商品名から抽出）
     let calorie = '';
-    const calMatch = name.match(/(\d+(?:\.\d+)?)\s*[Kk][Cc]al(?:\/100g)?/);
-    if (calMatch) calorie = `${calMatch[1]} kcal`;
+    const calPer100g = name.match(/(\d+(?:\.\d+)?)\s*[Kk][Cc]al\s*\/\s*100\s*g/);
+    const calTotal = name.match(/(\d+(?:\.\d+)?)\s*[Kk][Cc]al(?!\/)/);
+    if (calPer100g) calorie = `${calPer100g[1]} kcal/100g`;
+    else if (calTotal) calorie = `${calTotal[1]} kcal`;
 
     // 1kgあたり価格（フード系のみ）
     let pricePerKg = '';
     if (weightKg > 0 && (category.includes('food') || category.includes('snack'))) {
-      pricePerKg = `${Math.round(price / weightKg).toLocaleString()} 円`;
+      pricePerKg = `${Math.round(price / weightKg).toLocaleString()} 円/kg`;
     }
 
     // 対象年齢
     let ageGroup = '';
-    if (/パピー|子犬|子猫|キトン|幼犬|幼猫/.test(name)) ageGroup = 'パピー・子猫用';
-    else if (/シニア|高齢|老犬|老猫|7歳以上|11歳以上|12歳以上/.test(name)) ageGroup = 'シニア用（7歳以上）';
-    else if (/成犬|成猫|アダルト/.test(name)) ageGroup = '成犬・成猫用';
+    if (/パピー|子犬|子猫|キトン|幼犬|幼猫|1歳未満/.test(name)) ageGroup = 'パピー・子猫用';
+    else if (/シニア|高齢|老犬|老猫|7歳以上|11歳以上|12歳以上|7才以上|11才以上/.test(name)) ageGroup = 'シニア用（7歳以上）';
+    else if (/成犬|成猫|アダルト|1歳以上/.test(name)) ageGroup = '成犬・成猫用';
     else if (category.includes('food') || category.includes('snack')) ageGroup = '全年齢対応';
 
-    // 対象サイズ
+    // 対象サイズ（犬の場合）
     let size = '';
-    if (/超小型犬|トイ/.test(name)) size = '超小型犬（〜4kg）';
-    else if (/小型犬/.test(name)) size = '小型犬（〜10kg）';
-    else if (/中型犬/.test(name)) size = '中型犬（10〜25kg）';
-    else if (/大型犬/.test(name)) size = '大型犬（25kg以上）';
-    else if (/全犬種|全サイズ/.test(name)) size = '全犬種対応';
+    if (category.startsWith('dog')) {
+      if (/超小型犬|トイ(?:プードル|サイズ)/.test(name)) size = '超小型犬（〜4kg）';
+      else if (/小型犬|ミニチュア/.test(name)) size = '小型犬（〜10kg）';
+      else if (/中型犬/.test(name)) size = '中型犬（10〜25kg）';
+      else if (/大型犬/.test(name)) size = '大型犬（25kg以上）';
+      else if (/全犬種|全サイズ|すべてのサイズ/.test(name)) size = '全犬種対応';
+    }
+
+    // サイズ表記（服・キャリーなど）
+    let itemSize = '';
+    if (['dog-clothes', 'cat-goods', 'dog-carrier', 'cat-carrier'].includes(category)) {
+      const sizeM = name.match(/\b(SS|XS|S|M|L|XL|XXL|2L|3L)\b/);
+      if (sizeM) itemSize = sizeM[1];
+    }
 
     // 特徴・用途（○表示用）
     const features: { label: string; on: boolean }[] = [
-      { label: '皮膚ケア用', on: /皮膚|スキン|被毛|毛並み|アレルギー性皮膚/.test(name) },
-      { label: '消化器ケア用', on: /消化器|消化|胃腸|便秘|下痢|整腸/.test(name) },
-      { label: '関節ケア用', on: /関節|グルコサミン|コンドロイチン|関節炎/.test(name) },
-      { label: '泌尿器ケア用', on: /尿路|泌尿器|ストルバイト|シュウ酸|FLUTD/.test(name) },
-      { label: '体重管理用', on: /ライト|低カロリー|ダイエット|体重管理|肥満|ウェイト/.test(name) },
+      { label: '皮膚・被毛ケア', on: /皮膚|スキン|被毛|毛並み|アレルギー性皮膚|ハーブ.*肌/.test(name) },
+      { label: '消化器ケア用', on: /消化器|消化サポート|胃腸|便秘|下痢|整腸/.test(name) },
+      { label: '関節ケア用', on: /関節|グルコサミン|コンドロイチン|関節炎|軟骨/.test(name) },
+      { label: '泌尿器ケア用', on: /尿路|泌尿器|ストルバイト|シュウ酸|FLUTD|膀胱/.test(name) },
+      { label: '体重管理用', on: /ライト|低カロリー|ダイエット|体重管理|肥満|ウェイト|減量/.test(name) },
       { label: '毛玉ケア用', on: /毛玉|ヘアボール/.test(name) },
-      { label: 'アレルギー対応', on: /アレルギー|低アレルゲン|グレインフリー|穀物不使用/.test(name) },
+      { label: 'アレルギー対応', on: /アレルギー|低アレルゲン|グレインフリー|穀物不使用|無グルテン/.test(name) },
       { label: '療法食', on: /療法食|処方食|メディカル/.test(name) },
+      { label: '免疫サポート', on: /免疫|抗酸化|ポリフェノール/.test(name) },
+      { label: '心臓ケア用', on: /心臓|心疾患|タウリン.*心/.test(name) },
+      { label: '腎臓ケア用', on: /腎臓|腎不全|腎サポート/.test(name) },
       { label: '無添加', on: /無添加/.test(name) },
       { label: '国産', on: /国産/.test(name) },
-      { label: 'オーガニック', on: /オーガニック/.test(name) },
+      { label: 'オーガニック', on: /オーガニック|有機/.test(name) },
       { label: '送料無料', on: /送料無料/.test(name) },
     ].filter(f => f.on);
 
-    return { genre, type, weight, count, calorie, pricePerKg, ageGroup, size, features };
+    return { genre, type, weight, count, calorie, pricePerKg, ageGroup, size, itemSize, features };
   }
 
   const specData = extractProductInfo(product.name, product.current_price, product.category);
@@ -414,6 +460,12 @@ export default async function ProductPage({ params }: PageProps) {
                         <tr className="border-b border-[#eee]">
                           <td className="bg-[#f5f5f5] px-3 py-2 font-bold text-[#555] border-r border-[#eee]">対象サイズ</td>
                           <td className="px-3 py-2">{specData.size}</td>
+                        </tr>
+                      )}
+                      {specData.itemSize && (
+                        <tr className="border-b border-[#eee]">
+                          <td className="bg-[#f5f5f5] px-3 py-2 font-bold text-[#555] border-r border-[#eee]">サイズ</td>
+                          <td className="px-3 py-2 text-[#0058B3] font-bold">{specData.itemSize}</td>
                         </tr>
                       )}
                       {specData.calorie && (
