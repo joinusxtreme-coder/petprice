@@ -1,445 +1,265 @@
 import { createClient } from '@supabase/supabase-js';
-import { searchProducts } from '../lib/rakuten';
 
 const supabase = createClient(
   process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-// 全楽天ペット商品を網羅する120+キーワード
-const KEYWORD_CATEGORY: [string, string][] = [
-  // ━━━━━ ドッグフード ━━━━━
-  ['ドッグフード', 'dog-food'],
-  ['ドライフード 犬', 'dog-food'],
-  ['ウェットフード 犬', 'dog-food'],
-  ['パピーフード 犬', 'dog-food'],
-  ['シニア犬 フード', 'dog-food'],
-  ['小型犬 ドッグフード', 'dog-food'],
-  ['中型犬 ドッグフード', 'dog-food'],
-  ['大型犬 ドッグフード', 'dog-food'],
-  ['療法食 犬', 'dog-food'],
-  ['無添加 ドッグフード', 'dog-food'],
-  ['穀物不使用 ドッグフード', 'dog-food'],
-  ['グレインフリー ドッグフード', 'dog-food'],
-  ['国産 ドッグフード', 'dog-food'],
-  ['ヒルズ サイエンスダイエット 犬', 'dog-food'],
-  ['ロイヤルカナン 犬', 'dog-food'],
-  ['ニュートロ ドッグフード', 'dog-food'],
-  ['アカナ ドッグフード', 'dog-food'],
-  ['オリジン ドッグフード', 'dog-food'],
-  ['グランデリ ドッグフード', 'dog-food'],
-  ['犬 缶詰 フード', 'dog-food'],
-  ['犬 パウチ フード', 'dog-food'],
-  ['犬 総合栄養食', 'dog-food'],
-  ['ピュリナ ドッグチャウ', 'dog-food'],
-  ['いなば 犬 フード', 'dog-food'],
-  ['ドッグフード 低カロリー', 'dog-food'],
-  ['ドッグフード 高タンパク', 'dog-food'],
+const RAKUTEN_API = 'https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20220601';
+const GENRE_API  = 'https://openapi.rakuten.co.jp/ichibams/api/IchibaGenre/Search/20220601';
 
-  // ━━━━━ 犬のおやつ ━━━━━
-  ['犬おやつ', 'dog-snack'],
-  ['ドッグおやつ', 'dog-snack'],
-  ['犬 ジャーキー', 'dog-snack'],
-  ['犬 デンタルガム', 'dog-snack'],
-  ['犬 ガム おやつ', 'dog-snack'],
-  ['犬 おやつ 無添加', 'dog-snack'],
-  ['犬 おやつ 国産', 'dog-snack'],
-  ['犬 おやつ クッキー', 'dog-snack'],
-  ['犬 おやつ 骨', 'dog-snack'],
-  ['犬 ヘルシースナック', 'dog-snack'],
-  ['犬 ビスケット おやつ', 'dog-snack'],
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 楽天ペットジャンルID → サイトカテゴリ のマッピング
+// 101213 = ペット用品 トップ（子ジャンルを動的取得してページング）
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const GENRE_CATEGORY_MAP: Record<string, string> = {
+  // ── 犬用品 ──
+  '101214': 'dog-food',      // ドッグフード
+  '101240': 'dog-snack',     // 犬のおやつ
+  '566948': 'dog-feeder',    // 食器・給水器(犬)
+  '101221': 'dog-toilet',    // トイレ用品(犬)
+  '101218': 'dog-walk',      // リード・ハーネス・首輪
+  '101216': 'dog-care',      // ケア・グルーミング(犬)
+  '566942': 'dog-clothes',   // ドッグウェア
+  '566944': 'dog-toy',       // 犬のおもちゃ
+  '101217': 'dog-goods',     // ケージ・ベッド・ハウス
+  '566946': 'dog-carrier',   // キャリーバッグ(犬)
+  // ── 猫用品 ──
+  '101228': 'cat-food',      // キャットフード
+  '101241': 'cat-snack',     // 猫のおやつ
+  '566955': 'cat-feeder',    // 食器・給水器(猫)
+  '101234': 'cat-toilet',    // トイレ・猫砂
+  '101232': 'cat-tower',     // キャットタワー・爪とぎ
+  '101230': 'cat-care',      // ケア・グルーミング(猫)
+  '566957': 'cat-toy',       // 猫のおもちゃ
+  '101231': 'cat-goods',     // ベッド・マット
+  '566959': 'cat-carrier',   // キャリーバッグ(猫)
+  // ── 共通 ──
+  '101222': 'pet-sheets',    // ペットシーツ
+  '566961': 'pet-toilet',    // その他トイレ用品
+  // ── 鳥・小動物 ──
+  '101243': 'bird-food',     // 鳥のえさ
+  '101244': 'bird-goods',    // 鳥かご・用品
+  '101246': 'small-animal-food',   // 小動物フード
+  '101247': 'small-animal-goods',  // 小動物用品
+  // ── 熱帯魚・アクアリウム ──
+  '101249': 'fish-food',     // 魚のえさ
+  '101250': 'fish-tank',     // 水槽・フィルター
+  '101251': 'fish-goods',    // アクアリウム用品
+  // ── 爬虫類・両生類 ──
+  '101254': 'reptile-food',  // 爬虫類えさ
+  '101255': 'reptile-goods', // 爬虫類飼育用品
+  // ── 昆虫 ──
+  '101257': 'insect-goods',  // 昆虫飼育用品
+};
 
-  // ━━━━━ お散歩用品 ━━━━━
-  ['ハーネス 犬', 'dog-walk'],
-  ['リード 犬', 'dog-walk'],
-  ['首輪 犬', 'dog-walk'],
-  ['伸縮リード 犬', 'dog-walk'],
-  ['犬 ハーネス 小型犬', 'dog-walk'],
-  ['犬 胴輪', 'dog-walk'],
-  ['犬 散歩 リュック', 'dog-walk'],
-  ['犬 散歩 ポーチ', 'dog-walk'],
-  ['犬 マナーウェア', 'dog-walk'],
+// ペットトップジャンルID（子ジャンルを自動取得する場合のルート）
+const PET_ROOT_GENRE_ID = '101213';
 
-  // ━━━━━ 犬のケア用品 ━━━━━
-  ['ペットシャンプー 犬', 'dog-care'],
-  ['犬 サプリメント', 'dog-care'],
-  ['犬 歯ブラシ デンタル', 'dog-care'],
-  ['犬 ブラシ グルーミング', 'dog-care'],
-  ['犬 爪切り ペット', 'dog-care'],
-  ['犬 耳掃除 イヤークリーナー', 'dog-care'],
-  ['犬 コンディショナー リンス', 'dog-care'],
-  ['犬 健康管理 サプリ', 'dog-care'],
-  ['犬 防虫 ノミダニ', 'dog-care'],
-  ['犬 目薬 点眼', 'dog-care'],
+// ━━━ ユーティリティ ━━━
 
-  // ━━━━━ 犬用品 ━━━━━
-  ['ペットベッド 犬', 'dog-goods'],
-  ['犬 おもちゃ', 'dog-goods'],
-  ['犬 キャリーバッグ', 'dog-goods'],
-  ['犬 ケージ サークル', 'dog-goods'],
-  ['犬 食器 ボウル', 'dog-goods'],
-  ['犬 自動給水器', 'dog-goods'],
-  ['犬 服 ウェア', 'dog-goods'],
-  ['犬 レインコート', 'dog-goods'],
-  ['犬小屋 ハウス', 'dog-goods'],
-  ['犬 マット クッション', 'dog-goods'],
-  ['犬 トイレトレー', 'dog-goods'],
-  ['犬 おむつ マナーパンツ', 'dog-goods'],
+function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
+}
 
-  // ━━━━━ キャットフード ━━━━━
-  ['キャットフード', 'cat-food'],
-  ['ウェットフード 猫', 'cat-food'],
-  ['シニア猫 フード', 'cat-food'],
-  ['子猫 フード キトン', 'cat-food'],
-  ['療法食 猫', 'cat-food'],
-  ['猫 ドライフード', 'cat-food'],
-  ['猫 缶詰 フード', 'cat-food'],
-  ['猫 パウチ フード', 'cat-food'],
-  ['猫 総合栄養食', 'cat-food'],
-  ['猫 フード 国産', 'cat-food'],
-  ['猫 フード 無添加', 'cat-food'],
-  ['猫 フード 穀物不使用', 'cat-food'],
-  ['猫 グレインフリー フード', 'cat-food'],
-  ['ロイヤルカナン 猫', 'cat-food'],
-  ['ヒルズ キャットフード', 'cat-food'],
-  ['ニュートロ キャットフード', 'cat-food'],
-  ['モグニャン キャットフード', 'cat-food'],
-  ['猫 フード 尿路ケア', 'cat-food'],
-  ['猫 フード インドア', 'cat-food'],
-  ['猫 フード 毛玉ケア', 'cat-food'],
-  ['猫 フード 高齢猫', 'cat-food'],
-  ['ピュリナ ワン 猫', 'cat-food'],
-  ['いなば 猫 フード', 'cat-food'],
-  ['フリスキー キャットフード', 'cat-food'],
-  ['カルカン キャットフード', 'cat-food'],
-
-  // ━━━━━ 猫のおやつ ━━━━━
-  ['猫おやつ', 'cat-snack'],
-  ['猫 おやつ ちゅーる', 'cat-snack'],
-  ['猫 おやつ ちゅ〜る', 'cat-snack'],
-  ['INABA ちゅーる 猫', 'cat-snack'],
-  ['猫 おやつ 無添加', 'cat-snack'],
-  ['猫 おやつ パウチ', 'cat-snack'],
-  ['猫 スナック トリーツ', 'cat-snack'],
-  ['猫 おやつ 歯磨き', 'cat-snack'],
-  ['猫 おやつ 国産', 'cat-snack'],
-
-  // ━━━━━ トイレ・猫砂 ━━━━━
-  ['猫砂', 'cat-toilet'],
-  ['猫 トイレ', 'cat-toilet'],
-  ['猫砂 鉱物系', 'cat-toilet'],
-  ['猫砂 木系 ウッド', 'cat-toilet'],
-  ['猫砂 紙系', 'cat-toilet'],
-  ['猫砂 おから', 'cat-toilet'],
-  ['猫砂 シリカゲル', 'cat-toilet'],
-  ['システムトイレ 猫', 'cat-toilet'],
-  ['猫 トイレ 本体', 'cat-toilet'],
-  ['猫砂 大容量 業務用', 'cat-toilet'],
-  ['猫 トイレ 砂取りマット', 'cat-toilet'],
-  ['猫 消臭 トイレ砂', 'cat-toilet'],
-
-  // ━━━━━ キャットタワー ━━━━━
-  ['キャットタワー', 'cat-tower'],
-  ['猫 爪とぎ', 'cat-tower'],
-  ['キャットウォーク', 'cat-tower'],
-  ['猫 タワー 大型', 'cat-tower'],
-  ['猫 タワー 突っ張り', 'cat-tower'],
-  ['猫 爪とぎ 段ボール', 'cat-tower'],
-  ['猫 爪とぎ 麻', 'cat-tower'],
-  ['キャットポール 猫', 'cat-tower'],
-
-  // ━━━━━ 猫のケア用品 ━━━━━
-  ['ペットシャンプー 猫', 'cat-care'],
-  ['猫 ブラシ グルーミング', 'cat-care'],
-  ['猫 歯ブラシ デンタル', 'cat-care'],
-  ['猫 爪切り ネイルカッター', 'cat-care'],
-  ['猫 サプリメント', 'cat-care'],
-  ['猫 グルーミング スプレー', 'cat-care'],
-  ['猫 ノミダニ 駆除', 'cat-care'],
-  ['猫 目薬 涙やけ', 'cat-care'],
-
-  // ━━━━━ 猫用品 ━━━━━
-  ['ペットベッド 猫', 'cat-goods'],
-  ['猫 おもちゃ', 'cat-goods'],
-  ['猫 キャリーバッグ', 'cat-goods'],
-  ['猫 食器 ボウル', 'cat-goods'],
-  ['猫 自動給水器', 'cat-goods'],
-  ['猫 ハウス ドーム', 'cat-goods'],
-  ['猫 ケージ 室内', 'cat-goods'],
-  ['猫 ハンモック', 'cat-goods'],
-  ['猫 おもちゃ 電動 自動', 'cat-goods'],
-  ['猫 マット クッション', 'cat-goods'],
-
-  // ━━━━━ ペットシーツ ━━━━━
-  ['ペットシーツ', 'pet-sheets'],
-  ['ペットシーツ ワイド', 'pet-sheets'],
-  ['ペットシーツ 厚型 スーパー', 'pet-sheets'],
-  ['ペットシーツ スーパーワイド', 'pet-sheets'],
-  ['ペットシーツ 業務用 大容量', 'pet-sheets'],
-  ['犬 おしっこシート トイレシート', 'pet-sheets'],
-  ['ペットシーツ 消臭 抗菌', 'pet-sheets'],
-  ['ペットシーツ レギュラー 薄型', 'pet-sheets'],
-  ['ペットシーツ ダブルストップ', 'pet-sheets'],
-
-  // ━━━━━ 犬食器・給水器 ━━━━━
-  ['犬 食器 ボウル フードボウル', 'dog-feeder'],
-  ['犬 自動給水器 ウォーターファウンテン', 'dog-feeder'],
-  ['犬 食器台 フードスタンド', 'dog-feeder'],
-  ['犬 食器 ステンレス', 'dog-feeder'],
-  ['ペット 給水ボトル 犬', 'dog-feeder'],
-
-  // ━━━━━ 犬トイレ ━━━━━
-  ['犬 トイレトレー ペット', 'dog-toilet'],
-  ['犬 トイレ 囲い 壁付き', 'dog-toilet'],
-  ['犬 トイレ しつけ', 'dog-toilet'],
-  ['ペット トイレ 消臭 犬', 'dog-toilet'],
-
-  // ━━━━━ 犬服 ━━━━━
-  ['犬服 ドッグウェア', 'dog-clothes'],
-  ['犬 レインコート 雨具', 'dog-clothes'],
-  ['犬 セーター ニット', 'dog-clothes'],
-  ['犬 Tシャツ タンクトップ', 'dog-clothes'],
-  ['犬 パーカー コート', 'dog-clothes'],
-  ['小型犬 服 ウェア', 'dog-clothes'],
-
-  // ━━━━━ 犬おもちゃ ━━━━━
-  ['犬 おもちゃ ロープ ぬいぐるみ', 'dog-toy'],
-  ['犬 おもちゃ 電動 自動', 'dog-toy'],
-  ['犬 おもちゃ ボール', 'dog-toy'],
-  ['犬 噛む おもちゃ コング', 'dog-toy'],
-  ['犬 おもちゃ 知育 パズル', 'dog-toy'],
-
-  // ━━━━━ 犬キャリー ━━━━━
-  ['犬 キャリーバッグ ペット', 'dog-carrier'],
-  ['犬 リュック キャリー', 'dog-carrier'],
-  ['犬 スリング バッグ', 'dog-carrier'],
-  ['犬 ペットカート バギー', 'dog-carrier'],
-
-  // ━━━━━ 猫食器・給水器 ━━━━━
-  ['猫 食器 ボウル', 'cat-feeder'],
-  ['猫 自動給水器', 'cat-feeder'],
-  ['猫 食器 陶器 セラミック', 'cat-feeder'],
-  ['猫 食器台 スタンド', 'cat-feeder'],
-
-  // ━━━━━ 猫おもちゃ ━━━━━
-  ['猫 おもちゃ 電動 自動', 'cat-toy'],
-  ['猫 おもちゃ じゃらし 羽', 'cat-toy'],
-  ['猫 おもちゃ ボール ねずみ', 'cat-toy'],
-  ['猫 おもちゃ レーザー', 'cat-toy'],
-  ['猫じゃらし おもちゃ', 'cat-toy'],
-
-  // ━━━━━ 猫キャリー ━━━━━
-  ['猫 キャリーバッグ', 'cat-carrier'],
-  ['猫 キャリーケース ハードタイプ', 'cat-carrier'],
-  ['猫 リュック キャリー', 'cat-carrier'],
-  ['猫 バスケット 洗える', 'cat-carrier'],
-
-  // ━━━━━ その他ペットトイレ ━━━━━
-  ['ペット トイレ消臭 スプレー', 'pet-toilet'],
-  ['ペット 消臭剤 トイレ', 'pet-toilet'],
-
-  // ━━━━━ 鳥のえさ ━━━━━
-  ['鳥 えさ 餌 インコ', 'bird-food'],
-  ['オウム えさ ペレット', 'bird-food'],
-  ['文鳥 えさ シード', 'bird-food'],
-  ['インコ フード ペレット', 'bird-food'],
-  ['小鳥 えさ 混合シード', 'bird-food'],
-  ['鳥 おやつ フルーツ', 'bird-food'],
-
-  // ━━━━━ 鳥かご・ケージ ━━━━━
-  ['鳥かご インコ ケージ', 'bird-goods'],
-  ['バードケージ 鳥 ゲージ', 'bird-goods'],
-  ['インコ 放鳥 おもちゃ', 'bird-goods'],
-  ['鳥 止まり木 パーチ', 'bird-goods'],
-  ['インコ 水浴び 容器', 'bird-goods'],
-  ['鳥 ブランコ おもちゃ', 'bird-goods'],
-  ['鳥 巣箱 ハウス', 'bird-goods'],
-
-  // ━━━━━ 小動物フード ━━━━━
-  ['ハムスター えさ フード', 'small-animal-food'],
-  ['うさぎ ペレット 牧草', 'small-animal-food'],
-  ['フェレット フード えさ', 'small-animal-food'],
-  ['モルモット えさ フード', 'small-animal-food'],
-  ['チンチラ えさ フード', 'small-animal-food'],
-  ['小動物 おやつ フード', 'small-animal-food'],
-  ['うさぎ おやつ', 'small-animal-food'],
-
-  // ━━━━━ 小動物用品 ━━━━━
-  ['ハムスター ケージ 飼育セット', 'small-animal-goods'],
-  ['うさぎ ケージ うさぎ用品', 'small-animal-goods'],
-  ['ハムスター 回し車 回転', 'small-animal-goods'],
-  ['小動物 砂浴び 砂', 'small-animal-goods'],
-  ['うさぎ トイレ 飼育', 'small-animal-goods'],
-  ['ハムスター 巣箱 ハウス', 'small-animal-goods'],
-  ['フェレット ケージ ハンモック', 'small-animal-goods'],
-
-  // ━━━━━ 熱帯魚・アクアリウム用エサ ━━━━━
-  ['熱帯魚 えさ フレーク', 'fish-food'],
-  ['金魚 えさ 餌', 'fish-food'],
-  ['メダカ えさ 餌', 'fish-food'],
-  ['グッピー えさ 熱帯魚フード', 'fish-food'],
-  ['コリドラス えさ タブレット', 'fish-food'],
-  ['亀 えさ レプトミン', 'fish-food'],
-
-  // ━━━━━ 水槽・照明・フィルター ━━━━━
-  ['水槽 アクアリウム セット', 'fish-tank'],
-  ['水槽 LEDライト 照明', 'fish-tank'],
-  ['外部フィルター アクアリウム', 'fish-tank'],
-  ['上部フィルター 水槽', 'fish-tank'],
-  ['水槽 小型 金魚鉢', 'fish-tank'],
-  ['エアポンプ ブクブク 水槽', 'fish-tank'],
-  ['水槽 ヒーター サーモスタット', 'fish-tank'],
-
-  // ━━━━━ 水槽用品・水草 ━━━━━
-  ['水草 アクアリウム 人工', 'fish-goods'],
-  ['底砂 ソイル アクアリウム', 'fish-goods'],
-  ['水槽 流木 石 レイアウト', 'fish-goods'],
-  ['カルキ抜き 水質調整剤', 'fish-goods'],
-  ['水槽 コケ取り 掃除', 'fish-goods'],
-  ['水温計 デジタル 水槽', 'fish-goods'],
-
-  // ━━━━━ 爬虫類・両生類用エサ ━━━━━
-  ['爬虫類 えさ 人工フード', 'reptile-food'],
-  ['カメ えさ フード', 'reptile-food'],
-  ['トカゲ えさ コオロギ', 'reptile-food'],
-  ['ヘビ えさ 冷凍マウス', 'reptile-food'],
-  ['カエル えさ フード', 'reptile-food'],
-
-  // ━━━━━ 爬虫類・両生類飼育用品 ━━━━━
-  ['爬虫類 ケージ テラリウム', 'reptile-goods'],
-  ['爬虫類 紫外線ライト UVB', 'reptile-goods'],
-  ['爬虫類 保温球 ヒーター', 'reptile-goods'],
-  ['爬虫類 温湿度計 パネルヒーター', 'reptile-goods'],
-  ['カメ 飼育 水槽セット', 'reptile-goods'],
-  ['爬虫類 床材 ウッドチップ', 'reptile-goods'],
-
-  // ━━━━━ 昆虫飼育用品 ━━━━━
-  ['カブトムシ 飼育 ケース', 'insect-goods'],
-  ['クワガタ 飼育 ケース 幼虫', 'insect-goods'],
-  ['昆虫マット 腐葉土 カブトムシ', 'insect-goods'],
-  ['昆虫 ゼリー エサ カブトムシ', 'insect-goods'],
-  ['昆虫 飼育ケース コンテナ', 'insect-goods'],
-  ['カブトムシ 産卵 繁殖 マット', 'insect-goods'],
-];
-
-const KEYWORDS = KEYWORD_CATEGORY.map(([kw]) => kw);
-const KEYWORD_TO_CATEGORY = new Map(KEYWORD_CATEGORY);
-
-function detectPetType(name: string, keyword: string): string {
-  if (/ドッグ|犬|わんこ|パピー|ワンちゃん/.test(name) || /犬|ドッグ|パピー/.test(keyword)) return 'dog';
-  if (/キャット|猫|ねこ|ニャン/.test(name) || /猫|キャット/.test(keyword)) return 'cat';
-  if (/インコ|オウム|文鳥|鳥|バード/.test(name) || /鳥|インコ|バード/.test(keyword)) return 'bird';
-  if (/ハムスター|うさぎ|ウサギ|フェレット|モルモット|チンチラ|小動物/.test(name) || /ハムスター|うさぎ|小動物/.test(keyword)) return 'small';
-  if (/熱帯魚|金魚|メダカ|グッピー|アクアリウム|水槽/.test(name) || /熱帯魚|金魚|メダカ|水槽/.test(keyword)) return 'fish';
-  if (/爬虫類|カメ|トカゲ|ヘビ|カエル|両生類/.test(name) || /爬虫類|カメ|トカゲ/.test(keyword)) return 'reptile';
-  if (/カブトムシ|クワガタ|昆虫/.test(name) || /昆虫|カブトムシ|クワガタ/.test(keyword)) return 'insect';
+function detectPetType(name: string, category: string): string {
+  if (category.startsWith('dog')) return 'dog';
+  if (category.startsWith('cat')) return 'cat';
+  if (category.startsWith('bird')) return 'bird';
+  if (category.startsWith('small')) return 'small';
+  if (category.startsWith('fish')) return 'fish';
+  if (category.startsWith('reptile')) return 'reptile';
+  if (category.startsWith('insect')) return 'insect';
+  if (/ドッグ|犬/.test(name)) return 'dog';
+  if (/キャット|猫/.test(name)) return 'cat';
   return 'other';
 }
 
 function detectAgeGroup(name: string): string {
   if (/パピー|子犬|子猫|キトン|幼/.test(name)) return 'puppy';
-  if (/シニア|高齢|老犬|老猫|11歳|12歳|13歳|7歳以上/.test(name)) return 'senior';
+  if (/シニア|高齢|老犬|老猫|7歳|11歳|12歳/.test(name)) return 'senior';
   return 'all';
 }
 
-function detectCategory(keyword: string): string {
-  return KEYWORD_TO_CATEGORY.get(keyword) || 'other';
-}
-
-// ブランド抽出（商品名から）
+const BRANDS = [
+  'ロイヤルカナン','ヒルズ','ニュートロ','アカナ','オリジン','グランデリ',
+  'サイエンスダイエット','ピュリナ','いなば','INABA','モグニャン','フリスキー',
+  'カルカン','メディコート','ユニチャーム','アイリスオーヤマ','ライオン','花王',
+  'ペットキッス','IAMS','アイムス','デオトイレ','ニャンとも','ファーミネーター',
+];
 function extractBrand(name: string): string {
-  const brands = [
-    'ロイヤルカナン', 'ヒルズ', 'ニュートロ', 'アカナ', 'オリジン',
-    'グランデリ', 'グラン・デリ', 'サイエンスダイエット', 'ピュリナ',
-    'いなば', 'INABA', 'モグニャン', 'フリスキー', 'カルカン',
-    'ネスレ', 'メディコート', 'シュプレモ', 'ナチュラルチョイス',
-    'プリスクリプション', 'デオトイレ', 'ニャンとも', 'ファーミネーター',
-    'アイリスオーヤマ', 'ライオン', '花王', 'ユニチャーム',
-    'ペットキッス', 'IAMS', 'アイムス',
-  ];
-  for (const brand of brands) {
-    if (name.includes(brand)) return brand;
-  }
+  for (const b of BRANDS) if (name.includes(b)) return b;
   return '';
 }
 
-async function main() {
-  console.log('Starting Rakuten product fetch...');
-  console.log(`Total keywords: ${KEYWORDS.length}`);
-  let totalUpserted = 0;
+// ━━━ API呼び出し ━━━
 
-  for (const keyword of KEYWORDS) {
-    console.log(`\nFetching: "${keyword}"`);
-    for (let page = 1; page <= 10; page++) {
-      try {
-        const items = await searchProducts(keyword, page);
-        if (items.length === 0) {
-          console.log(`  Page ${page}: 0 items (stop)`);
-          break;
+async function getSubGenres(genreId: string): Promise<{ genreId: string; genreName: string }[]> {
+  const params = new URLSearchParams({
+    applicationId: process.env.RAKUTEN_APP_ID!,
+    accessKey: process.env.RAKUTEN_ACCESS_KEY!,
+    genreId,
+    formatVersion: '2',
+  });
+  const res = await fetch(`${GENRE_API}?${params}`, {
+    headers: { Referer: 'https://petprice-sand.vercel.app', Origin: 'https://petprice-sand.vercel.app' },
+  });
+  if (!res.ok) return [];
+  const data = await res.json();
+  const children = data.children || [];
+  return children.map((c: { genreId: number; genreName: string }) => ({
+    genreId: String(c.genreId),
+    genreName: c.genreName,
+  }));
+}
+
+async function fetchPageByGenre(
+  genreId: string,
+  page: number
+): Promise<{ items: unknown[]; pageCount: number }> {
+  const params = new URLSearchParams({
+    applicationId: process.env.RAKUTEN_APP_ID!,
+    accessKey: process.env.RAKUTEN_ACCESS_KEY!,
+    affiliateId: process.env.RAKUTEN_AFFILIATE_ID || '',
+    genreId,
+    hits: '30',
+    page: String(page),
+    sort: '-reviewCount',
+    formatVersion: '2',
+  });
+  const res = await fetch(`${RAKUTEN_API}?${params}`, {
+    headers: { Referer: 'https://petprice-sand.vercel.app', Origin: 'https://petprice-sand.vercel.app' },
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    console.error(`    API error ${res.status}: ${body.slice(0, 200)}`);
+    return { items: [], pageCount: 0 };
+  }
+  const data = await res.json();
+  return { items: data.Items || [], pageCount: data.pageCount || 0 };
+}
+
+// ━━━ Supabase upsert ━━━
+
+async function upsertItems(
+  rawItems: unknown[],
+  category: string
+): Promise<number> {
+  let count = 0;
+  for (const raw of rawItems) {
+    const item = raw as {
+      itemCode: string; itemName: string; itemPrice: number;
+      itemUrl: string; affiliateUrl?: string;
+      mediumImageUrls?: string[]; shopName: string;
+      reviewCount?: number; reviewAverage?: number;
+    };
+    const imageRaw = item.mediumImageUrls?.[0] ?? null;
+    const imageUrl = imageRaw ? imageRaw.replace('_ex=128x128', '_ex=400x400') : null;
+
+    const productData = {
+      rakuten_item_id: item.itemCode,
+      name: item.itemName,
+      category,
+      pet_type: detectPetType(item.itemName, category),
+      age_group: detectAgeGroup(item.itemName),
+      brand: extractBrand(item.itemName) || null,
+      image_url: imageUrl,
+      item_url: item.itemUrl,
+      affiliate_url: item.affiliateUrl || item.itemUrl,
+      current_price: item.itemPrice,
+      shop_name: item.shopName,
+      review_count: item.reviewCount ?? 0,
+      review_average: item.reviewAverage ?? 0,
+      updated_at: new Date().toISOString(),
+    };
+
+    const { data: product, error } = await supabase
+      .from('products')
+      .upsert(productData, { onConflict: 'rakuten_item_id' })
+      .select('id')
+      .single();
+
+    if (error) { console.error(`    upsert error: ${error.message}`); continue; }
+
+    if (product) {
+      count++;
+      await supabase.from('price_history').insert({
+        product_id: product.id,
+        price: item.itemPrice,
+        shop_name: item.shopName,
+      }).then(({ error: e }) => {
+        if (e && !e.message.includes('duplicate')) {
+          console.error(`    price_history error: ${e.message}`);
         }
-        console.log(`  Page ${page}: ${items.length} items`);
-
-        for (const item of items) {
-          const petType = detectPetType(item.itemName, keyword);
-          const ageGroup = detectAgeGroup(item.itemName);
-          const category = detectCategory(keyword);
-          const rawImageUrl = item.mediumImageUrls?.[0] || null;
-          const imageUrl = rawImageUrl ? rawImageUrl.replace('_ex=128x128', '_ex=400x400') : null;
-          const brand = extractBrand(item.itemName);
-
-          const productData = {
-            rakuten_item_id: item.itemCode,
-            name: item.itemName,
-            category,
-            pet_type: petType,
-            age_group: ageGroup,
-            brand: brand || null,
-            image_url: imageUrl,
-            item_url: item.itemUrl,
-            affiliate_url: item.affiliateUrl || item.itemUrl,
-            current_price: item.itemPrice,
-            shop_name: item.shopName,
-            review_count: item.reviewCount || 0,
-            review_average: item.reviewAverage || 0,
-            updated_at: new Date().toISOString(),
-          };
-
-          const { data: product, error: upsertError } = await supabase
-            .from('products')
-            .upsert(productData, { onConflict: 'rakuten_item_id' })
-            .select('id')
-            .single();
-
-          if (upsertError) {
-            console.error(`  Error upserting ${item.itemCode}:`, upsertError.message);
-            continue;
-          }
-
-          if (product) {
-            totalUpserted++;
-            const { error: historyError } = await supabase.from('price_history').insert({
-              product_id: product.id,
-              price: item.itemPrice,
-              shop_name: item.shopName,
-            });
-            if (historyError && !historyError.message.includes('duplicate')) {
-              console.error(`  Error inserting price history:`, historyError.message);
-            }
-          }
-        }
-
-        // Rakuten API レート制限対応
-        await new Promise((r) => setTimeout(r, 600));
-      } catch (err) {
-        console.error(`Error fetching "${keyword}" page ${page}:`, err);
-        break;
-      }
+      });
     }
-    // キーワード間の待機
-    await new Promise((r) => setTimeout(r, 1200));
+  }
+  return count;
+}
+
+// ━━━ メイン ━━━
+
+async function fetchGenre(genreId: string, category: string, genreName: string) {
+  console.log(`\n  [${category}] ジャンル "${genreName}" (${genreId})`);
+  let totalForGenre = 0;
+
+  // 1ページ目でpageCountを取得、最大100ページ
+  const first = await fetchPageByGenre(genreId, 1);
+  if (first.items.length === 0) { console.log('    → 0件'); return 0; }
+  totalForGenre += await upsertItems(first.items, category);
+  console.log(`    p1: ${first.items.length}件 (全${first.pageCount}ページ)`);
+
+  const maxPage = Math.min(first.pageCount, 100); // 楽天APIはpage最大100
+  for (let page = 2; page <= maxPage; page++) {
+    await sleep(500);
+    const { items } = await fetchPageByGenre(genreId, page);
+    if (items.length === 0) break;
+    totalForGenre += await upsertItems(items, category);
+    if (page % 10 === 0) console.log(`    p${page}: 累計${totalForGenre}件`);
   }
 
-  console.log(`\nDone! Total upserted: ${totalUpserted}`);
+  console.log(`    → 完了: ${totalForGenre}件`);
+  return totalForGenre;
+}
+
+async function main() {
+  console.log('=== 楽天ペット商品 ジャンル別全件取得 ===');
+  console.log(`開始時刻: ${new Date().toLocaleString('ja-JP')}\n`);
+
+  // Step1: ルートジャンルの子ジャンルを取得して、未マッピングのジャンルを確認
+  console.log(`ペットルートジャンル(${PET_ROOT_GENRE_ID})の子ジャンル一覧を取得中...`);
+  const rootChildren = await getSubGenres(PET_ROOT_GENRE_ID);
+  console.log(`子ジャンル ${rootChildren.length}件:`);
+  for (const g of rootChildren) {
+    const mapped = GENRE_CATEGORY_MAP[g.genreId] || '(未マッピング)';
+    console.log(`  ${g.genreId}: ${g.genreName} → ${mapped}`);
+  }
+
+  // Step2: マッピング済みジャンルを順番に処理
+  let grandTotal = 0;
+  const entries = Object.entries(GENRE_CATEGORY_MAP);
+  console.log(`\n合計 ${entries.length} ジャンルを処理します\n`);
+
+  for (const [genreId, category] of entries) {
+    // 子ジャンルを持つ場合は子ジャンルも処理
+    const children = await getSubGenres(genreId);
+    await sleep(300);
+
+    if (children.length > 0) {
+      console.log(`\nジャンル ${genreId}(${category}) → 子ジャンル${children.length}件を処理`);
+      for (const child of children) {
+        grandTotal += await fetchGenre(child.genreId, category, child.genreName);
+        await sleep(1000);
+      }
+    } else {
+      grandTotal += await fetchGenre(genreId, category, category);
+      await sleep(1000);
+    }
+  }
+
+  console.log(`\n${'='.repeat(50)}`);
+  console.log(`全処理完了！ 総upsert件数: ${grandTotal.toLocaleString()}件`);
+  console.log(`終了時刻: ${new Date().toLocaleString('ja-JP')}`);
 }
 
 main().catch(console.error);
