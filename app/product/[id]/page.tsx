@@ -67,47 +67,83 @@ export default async function ProductPage({ params }: PageProps) {
   const minPrice = allPrices.length > 0 ? Math.min(...allPrices) : null;
 
   // 商品名からスペック情報を抽出
-  function extractSpecs(name: string, category: string) {
-    const specs: { label: string; value: string }[] = [];
+  function extractProductInfo(name: string, price: number, category: string) {
+    // ジャンル
+    let genre = config?.label || '';
+    if (/療法食|処方食/.test(name)) genre = '療養・療法食';
+    else if (/サプリ|サプリメント/.test(name)) genre = 'サプリメント';
 
-    // ジャンル（カテゴリから）
-    if (config) specs.push({ label: 'ジャンル', value: config.label });
+    // タイプ
+    let type = '';
+    if (/ドライ|乾燥/.test(name)) type = 'ドライタイプ';
+    else if (/パウチ/.test(name)) type = 'パウチ';
+    else if (/缶詰|缶/.test(name)) type = '缶詰';
+    else if (/ウェット/.test(name)) type = 'ウェットタイプ';
+    else if (/ジャーキー/.test(name)) type = 'ジャーキー';
+    else if (/ガム/.test(name)) type = 'ガム';
+    else if (/ビスケット|クッキー/.test(name)) type = 'ビスケット';
+    else if (/フリーズドライ/.test(name)) type = 'フリーズドライ';
 
-    // タイプ（ドライ/ウェット/缶詰/パウチ）
-    if (/ドライ|乾燥/.test(name)) specs.push({ label: 'タイプ', value: 'ドライタイプ' });
-    else if (/ウェット|缶詰|缶|パウチ/.test(name)) specs.push({ label: 'タイプ', value: 'ウェットタイプ' });
-    else if (/ジャーキー/.test(name)) specs.push({ label: 'タイプ', value: 'ジャーキー' });
-    else if (/ガム/.test(name)) specs.push({ label: 'タイプ', value: 'ガム' });
+    // 内容量（複数パターン対応）
+    let weight = '';
+    let weightKg = 0;
+    const wm = name.match(/(\d+(?:\.\d+)?)\s*(kg|g)(?![a-zA-Z])/i);
+    if (wm) {
+      weight = `${wm[1]}${wm[2]}`;
+      weightKg = wm[2].toLowerCase() === 'kg' ? parseFloat(wm[1]) : parseFloat(wm[1]) / 1000;
+    }
+    // 枚・個・本
+    const countMatch = name.match(/(\d+(?:,\d+)?)\s*(枚|個|本|袋|食)(?:入|セット|まとめ)?/);
+    let count = '';
+    if (countMatch) count = `${countMatch[1].replace(',', '')}${countMatch[2]}`;
 
-    // 内容量（数字+kg/g/枚/個/L/ml）
-    const weightMatch = name.match(/(\d+(?:\.\d+)?)\s*(kg|g|枚|個|L|ml|ℓ)(?:入|×\d+)?/i);
-    if (weightMatch) specs.push({ label: '内容量', value: `${weightMatch[1]}${weightMatch[2]}` });
+    // カロリー（商品名から抽出）
+    let calorie = '';
+    const calMatch = name.match(/(\d+(?:\.\d+)?)\s*[Kk][Cc]al(?:\/100g)?/);
+    if (calMatch) calorie = `${calMatch[1]} kcal`;
+
+    // 1kgあたり価格（フード系のみ）
+    let pricePerKg = '';
+    if (weightKg > 0 && (category.includes('food') || category.includes('snack'))) {
+      pricePerKg = `${Math.round(price / weightKg).toLocaleString()} 円`;
+    }
 
     // 対象年齢
-    if (/パピー|子犬|子猫|キトン|幼犬|幼猫/.test(name)) specs.push({ label: '対象年齢', value: 'パピー・子猫用' });
-    else if (/シニア|高齢|老犬|老猫|7歳以上|11歳以上/.test(name)) specs.push({ label: '対象年齢', value: 'シニア用' });
-    else if (/成犬|成猫|アダルト|成体/.test(name)) specs.push({ label: '対象年齢', value: '成犬・成猫用' });
-    else if (category.includes('food') || category.includes('snack')) specs.push({ label: '対象年齢', value: '全年齢対応' });
+    let ageGroup = '';
+    if (/パピー|子犬|子猫|キトン|幼犬|幼猫/.test(name)) ageGroup = 'パピー・子猫用';
+    else if (/シニア|高齢|老犬|老猫|7歳以上|11歳以上|12歳以上/.test(name)) ageGroup = 'シニア用（7歳以上）';
+    else if (/成犬|成猫|アダルト/.test(name)) ageGroup = '成犬・成猫用';
+    else if (category.includes('food') || category.includes('snack')) ageGroup = '全年齢対応';
 
-    // 対象サイズ（犬のみ）
-    if (/小型犬/.test(name)) specs.push({ label: '対象サイズ', value: '小型犬' });
-    else if (/中型犬/.test(name)) specs.push({ label: '対象サイズ', value: '中型犬' });
-    else if (/大型犬/.test(name)) specs.push({ label: '対象サイズ', value: '大型犬' });
+    // 対象サイズ
+    let size = '';
+    if (/超小型犬|トイ/.test(name)) size = '超小型犬（〜4kg）';
+    else if (/小型犬/.test(name)) size = '小型犬（〜10kg）';
+    else if (/中型犬/.test(name)) size = '中型犬（10〜25kg）';
+    else if (/大型犬/.test(name)) size = '大型犬（25kg以上）';
+    else if (/全犬種|全サイズ/.test(name)) size = '全犬種対応';
 
-    // 特徴
-    const features: string[] = [];
-    if (/無添加/.test(name)) features.push('無添加');
-    if (/グレインフリー|穀物不使用/.test(name)) features.push('グレインフリー');
-    if (/国産/.test(name)) features.push('国産');
-    if (/療法食|処方食/.test(name)) features.push('療法食');
-    if (/オーガニック/.test(name)) features.push('オーガニック');
-    if (/送料無料/.test(name)) features.push('送料無料');
-    if (features.length > 0) specs.push({ label: '特徴', value: features.join(' / ') });
+    // 特徴・用途（○表示用）
+    const features: { label: string; on: boolean }[] = [
+      { label: '皮膚ケア用', on: /皮膚|スキン|被毛|毛並み|アレルギー性皮膚/.test(name) },
+      { label: '消化器ケア用', on: /消化器|消化|胃腸|便秘|下痢|整腸/.test(name) },
+      { label: '関節ケア用', on: /関節|グルコサミン|コンドロイチン|関節炎/.test(name) },
+      { label: '泌尿器ケア用', on: /尿路|泌尿器|ストルバイト|シュウ酸|FLUTD/.test(name) },
+      { label: '体重管理用', on: /ライト|低カロリー|ダイエット|体重管理|肥満|ウェイト/.test(name) },
+      { label: '毛玉ケア用', on: /毛玉|ヘアボール/.test(name) },
+      { label: 'アレルギー対応', on: /アレルギー|低アレルゲン|グレインフリー|穀物不使用/.test(name) },
+      { label: '療法食', on: /療法食|処方食|メディカル/.test(name) },
+      { label: '無添加', on: /無添加/.test(name) },
+      { label: '国産', on: /国産/.test(name) },
+      { label: 'オーガニック', on: /オーガニック/.test(name) },
+      { label: '送料無料', on: /送料無料/.test(name) },
+    ].filter(f => f.on);
 
-    return specs;
+    return { genre, type, weight, count, calorie, pricePerKg, ageGroup, size, features };
   }
 
-  const specs = extractSpecs(product.name, product.category);
+  const specData = extractProductInfo(product.name, product.current_price, product.category);
+  const isFoodCategory = ['dog-food','cat-food','dog-snack','cat-snack','bird-food','small-animal-food','fish-food','reptile-food'].includes(product.category);
 
   return (
     <div className="min-h-screen bg-[#F0F0F0]" style={{ fontFamily: 'Meiryo, "Hiragino Kaku Gothic Pro", sans-serif' }}>
@@ -328,34 +364,102 @@ export default async function ProductPage({ params }: PageProps) {
           </div>
 
           {/* スペック・仕様 */}
-          {specs.length > 0 && (
-            <div className="bg-white border border-[#ddd]">
-              <div className="px-3 py-2 border-b border-[#ddd] bg-[#f8f8f8]">
-                <h2 className="text-sm font-bold text-[#333]">📋 スペック・仕様</h2>
-              </div>
-              <div className="p-3">
-                {/* catchcopy（商品説明文） */}
-                {product.description && (
-                  <p className="text-xs text-[#555] bg-[#FFF5EE] border border-[#FFD0B0] px-3 py-2 mb-3 leading-relaxed">
-                    {product.description}
-                  </p>
-                )}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-0 border border-[#ddd]">
-                  {specs.map((s, i) => (
-                    <div key={i} className={`flex border-b border-[#eee] ${i % 2 === 0 ? '' : 'md:border-l md:border-[#eee]'}`}>
-                      <div className="bg-[#f0f0f0] text-xs text-[#555] font-bold px-3 py-2 w-28 shrink-0 border-r border-[#eee]">
-                        {s.label}
-                      </div>
-                      <div className="text-xs text-[#333] px-3 py-2 flex-1">
-                        {s.value}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-xs text-[#999] mt-2">※ スペック情報は商品名から自動抽出しています。詳細は楽天市場の商品ページをご確認ください。</p>
-              </div>
+          <div className="bg-white border border-[#ddd]">
+            <div className="px-3 py-2 border-b border-[#ddd] bg-[#f8f8f8]">
+              <h2 className="text-sm font-bold text-[#333]">
+                {product.name.slice(0, 40)}{product.name.length > 40 ? '...' : ''} のスペック・仕様
+              </h2>
             </div>
-          )}
+            <div className="p-3">
+              {/* catchcopy（楽天店舗の紹介文） */}
+              {product.description && (
+                <p className="text-xs text-[#555] bg-[#f8f8f8] border border-[#ddd] px-3 py-2 mb-3 leading-relaxed">
+                  {product.description}
+                </p>
+              )}
+
+              <div className="flex gap-4 flex-wrap md:flex-nowrap">
+                {/* 左：製品情報テーブル */}
+                <div className="flex-1 min-w-0">
+                  <div className="bg-[#0058B3] text-white text-xs font-bold px-3 py-1.5 mb-0">製品情報</div>
+                  <table className="w-full text-xs border border-[#ddd] border-t-0">
+                    <tbody>
+                      {specData.genre && (
+                        <tr className="border-b border-[#eee]">
+                          <td className="bg-[#f5f5f5] px-3 py-2 w-32 font-bold text-[#555] border-r border-[#eee]">ジャンル</td>
+                          <td className="px-3 py-2 text-[#0058B3]">{specData.genre}</td>
+                        </tr>
+                      )}
+                      {specData.type && (
+                        <tr className="border-b border-[#eee]">
+                          <td className="bg-[#f5f5f5] px-3 py-2 font-bold text-[#555] border-r border-[#eee]">タイプ</td>
+                          <td className="px-3 py-2 text-[#0058B3]">{specData.type}</td>
+                        </tr>
+                      )}
+                      {(specData.weight || specData.count) && (
+                        <tr className="border-b border-[#eee]">
+                          <td className="bg-[#f5f5f5] px-3 py-2 font-bold text-[#555] border-r border-[#eee]">内容量</td>
+                          <td className="px-3 py-2">{[specData.weight, specData.count].filter(Boolean).join(' / ')}</td>
+                        </tr>
+                      )}
+                      {specData.ageGroup && (
+                        <tr className="border-b border-[#eee]">
+                          <td className="bg-[#f5f5f5] px-3 py-2 font-bold text-[#555] border-r border-[#eee]">対象年齢</td>
+                          <td className="px-3 py-2">{specData.ageGroup}</td>
+                        </tr>
+                      )}
+                      {specData.size && (
+                        <tr className="border-b border-[#eee]">
+                          <td className="bg-[#f5f5f5] px-3 py-2 font-bold text-[#555] border-r border-[#eee]">対象サイズ</td>
+                          <td className="px-3 py-2">{specData.size}</td>
+                        </tr>
+                      )}
+                      {specData.calorie && (
+                        <tr className="border-b border-[#eee]">
+                          <td className="bg-[#f5f5f5] px-3 py-2 font-bold text-[#555] border-r border-[#eee]">カロリー</td>
+                          <td className="px-3 py-2 text-[#0058B3]">{specData.calorie}</td>
+                        </tr>
+                      )}
+                      {specData.pricePerKg && isFoodCategory && (
+                        <tr className="border-b border-[#eee]">
+                          <td className="bg-[#f5f5f5] px-3 py-2 font-bold text-[#555] border-r border-[#eee]">1kgあたり価格</td>
+                          <td className="px-3 py-2">{specData.pricePerKg}</td>
+                        </tr>
+                      )}
+                      <tr>
+                        <td className="bg-[#f5f5f5] px-3 py-2 font-bold text-[#555] border-r border-[#eee]">販売店</td>
+                        <td className="px-3 py-2 text-[#0058B3]">{product.shop_name}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* 右：特徴・用途 */}
+                {specData.features.length > 0 && (
+                  <div className="w-52 shrink-0">
+                    <div className="bg-[#0058B3] text-white text-xs font-bold px-3 py-1.5 mb-0">特徴・用途</div>
+                    <table className="w-full text-xs border border-[#ddd] border-t-0">
+                      <tbody>
+                        {specData.features.map((f) => (
+                          <tr key={f.label} className="border-b border-[#eee]">
+                            <td className="px-3 py-2 text-[#333]">{f.label}</td>
+                            <td className="px-3 py-2 text-center w-10">
+                              <span className="text-[#0058B3] font-bold text-sm">○</span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              <p className="text-xs text-[#999] mt-2">
+                ※ スペック情報は商品名から自動抽出しています。詳細は楽天市場の商品ページをご確認ください。<br />
+                ※ 空白部分は未調査の項目です。
+              </p>
+            </div>
+          </div>
 
           {/* 価格推移グラフ */}
           {history && history.length > 1 && (
