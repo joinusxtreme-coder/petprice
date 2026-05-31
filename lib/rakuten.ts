@@ -49,6 +49,43 @@ export async function searchProducts(keyword: string, page = 1): Promise<Rakuten
   return data.Items || [];
 }
 
+export interface RakutenReview {
+  reviewId: string;
+  title: string;
+  body: string;
+  reviewDate: string;
+  reviewer: string;
+  rate: number;
+}
+
+export async function fetchItemReviews(itemCode: string, hits = 5): Promise<RakutenReview[]> {
+  try {
+    const params = new URLSearchParams({
+      applicationId: process.env.RAKUTEN_APP_ID!,
+      itemCode,
+      hits: String(hits),
+      page: '1',
+      formatVersion: '2',
+    });
+    const res = await fetch(
+      `https://app.rakuten.co.jp/services/api/IchibaItemReview/Search/20170427?${params}`,
+      { headers: { 'Referer': 'https://petprice-sand.vercel.app' }, next: { revalidate: 3600 } }
+    );
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.Items || []).map((r: Record<string, unknown>) => ({
+      reviewId: String(r.reviewId || ''),
+      title: String(r.title || ''),
+      body: String(r.body || ''),
+      reviewDate: String(r.reviewDate || ''),
+      reviewer: String(r.reviewer || '匿名'),
+      rate: Number(r.rate || 0),
+    }));
+  } catch {
+    return [];
+  }
+}
+
 export function buildAffiliateUrl(url: string): string {
   const affiliateId = process.env.RAKUTEN_AFFILIATE_ID;
   if (!affiliateId) return url;

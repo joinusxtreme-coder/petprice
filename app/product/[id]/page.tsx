@@ -7,6 +7,7 @@ import AlertForm from '@/components/AlertForm';
 import AffiliateButton from '@/components/AffiliateButton';
 import ProductCard from '@/components/ProductCard';
 import { CATEGORY_CONFIG, SIDEBAR_GROUPS } from '@/app/[category]/page';
+import { fetchItemReviews } from '@/lib/rakuten';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -36,6 +37,11 @@ export default async function ProductPage({ params }: PageProps) {
   ]);
 
   if (!product) notFound();
+
+  // 楽天レビュー取得
+  const reviews = product.rakuten_item_id
+    ? await fetchItemReviews(product.rakuten_item_id, 5)
+    : [];
 
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
@@ -265,7 +271,25 @@ export default async function ProductPage({ params }: PageProps) {
                     </div>
                   </div>
 
-                  {/* レビューを楽天で見る */}
+                  {/* レビュー一覧 */}
+                  {reviews.length > 0 ? (
+                    <div className="space-y-3 mb-3">
+                      {reviews.map((r) => (
+                        <div key={r.reviewId} className="border border-[#eee] p-3 bg-[#fafafa]">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-yellow-500 text-sm">
+                              {'★'.repeat(r.rate)}{'☆'.repeat(5 - r.rate)}
+                            </span>
+                            <span className="text-xs font-bold text-[#333]">{r.title}</span>
+                          </div>
+                          <p className="text-xs text-[#555] leading-relaxed line-clamp-4">{r.body}</p>
+                          <p className="text-xs text-[#999] mt-1">{r.reviewer} · {r.reviewDate}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  {/* 全レビューを楽天で見る */}
                   <div className="text-center">
                     <a
                       href={`${product.item_url}#reviewlistWrapper`}
