@@ -16,7 +16,7 @@ import RecordHistory from '@/components/RecordHistory';
 import RecentlyViewed from '@/components/RecentlyViewed';
 import SubscriptionSimulator from '@/components/SubscriptionSimulator';
 import PetRecommendations from '@/components/PetRecommendations';
-import { CATEGORY_CONFIG, SIDEBAR_GROUPS } from '@/app/[category]/page';
+import { CATEGORY_CONFIG, SIDEBAR_GROUPS } from '@/lib/categories';
 import { extractItemCode, fetchItemDetail, parseItemCaption } from '@/lib/rakuten';
 import SiteFooter from '@/components/SiteFooter';
 

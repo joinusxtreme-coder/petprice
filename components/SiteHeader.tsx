@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
 import { useEffect, useState } from 'react';
 import { supabaseBrowser } from '@/lib/supabase-browser';
-import { SIDEBAR_GROUPS, CATEGORY_CONFIG } from '@/app/[category]/page';
+import { SIDEBAR_GROUPS, CATEGORY_CONFIG } from '@/lib/categories';
 
 export default function SiteHeader() {
   const { user, signOut } = useAuth();

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import SiteHeader from '@/components/SiteHeader';
 import { COLUMNS } from '@/lib/columns';
-import { SIDEBAR_GROUPS, CATEGORY_CONFIG } from '@/app/[category]/page';
+import { SIDEBAR_GROUPS, CATEGORY_CONFIG } from '@/lib/categories';
 
 export const metadata = {
   title: 'ペット用品コラム | ペットプライス',

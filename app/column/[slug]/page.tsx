@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import SiteHeader from '@/components/SiteHeader';
 import { COLUMNS, getColumn } from '@/lib/columns';
-import { SIDEBAR_GROUPS, CATEGORY_CONFIG } from '@/app/[category]/page';
+import { SIDEBAR_GROUPS, CATEGORY_CONFIG } from '@/lib/categories';
 
 export function generateStaticParams() {
   return COLUMNS.map((col) => ({ slug: col.slug }));

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
-import { CATEGORY_CONFIG, SIDEBAR_GROUPS } from '@/app/[category]/page';
+import { CATEGORY_CONFIG, SIDEBAR_GROUPS } from '@/lib/categories';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
 

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { SIDEBAR_GROUPS, CATEGORY_CONFIG } from '@/app/[category]/page';
+import { SIDEBAR_GROUPS, CATEGORY_CONFIG } from '@/lib/categories';
 
 export default function SiteFooter() {
   return (

@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase';
 import ProductCard from '@/components/ProductCard';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
-import { SIDEBAR_GROUPS, CATEGORY_CONFIG } from '@/app/[category]/page';
+import { SIDEBAR_GROUPS, CATEGORY_CONFIG } from '@/lib/categories';
 
 const PER_PAGE = 40;
 
