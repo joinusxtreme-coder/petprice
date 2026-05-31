@@ -8,6 +8,10 @@ import PriceChart from '@/components/PriceChart';
 import AlertForm from '@/components/AlertForm';
 import AffiliateButton from '@/components/AffiliateButton';
 import ProductCard from '@/components/ProductCard';
+import SiteHeader from '@/components/SiteHeader';
+import FavoriteButton from '@/components/FavoriteButton';
+import UserReviewSection from '@/components/UserReviewSection';
+import CompareButton from '@/components/CompareButton';
 import { CATEGORY_CONFIG, SIDEBAR_GROUPS } from '@/app/[category]/page';
 
 interface PageProps {
@@ -195,28 +199,7 @@ export default async function ProductPage({ params }: PageProps) {
 
   return (
     <div className="min-h-screen bg-[#F0F0F0]" style={{ fontFamily: 'Meiryo, "Hiragino Kaku Gothic Pro", sans-serif' }}>
-      {/* Top orange stripe */}
-      <div className="bg-[#FF6600] h-1" />
-
-      {/* Header */}
-      <header className="bg-white border-b border-[#ddd]">
-        <div className="max-w-5xl mx-auto px-3 py-2 flex items-center gap-4">
-          <Link href="/" className="shrink-0 flex items-center gap-1">
-            <span className="text-[#FF6600] font-bold text-xl leading-none">ペットプライス</span>
-            <span className="text-[#666] text-base ml-1">🐾 ペット</span>
-          </Link>
-          <form action="/search" className="flex-1 max-w-lg flex">
-            <input
-              name="q"
-              placeholder="キーワード検索"
-              className="flex-1 border border-[#ccc] border-r-0 px-3 py-1.5 text-sm focus:outline-none focus:border-[#FF6600]"
-            />
-            <button type="submit" className="bg-[#FF6600] text-white px-4 py-1.5 text-sm font-bold hover:bg-[#e55a00]">
-              検索
-            </button>
-          </form>
-        </div>
-      </header>
+      <SiteHeader />
 
       {/* Breadcrumb */}
       <div className="bg-white border-b border-[#eee]">
@@ -339,8 +322,12 @@ export default async function ProductPage({ params }: PageProps) {
                 </div>
 
                 {/* 購入ボタン */}
-                <div>
+                <div className="space-y-2">
                   <AffiliateButton url={product.affiliate_url || product.item_url || '#'} className="w-full" />
+                  <div className="flex gap-2">
+                    <FavoriteButton productId={product.id} />
+                    <CompareButton product={{ id: product.id, name: product.name, current_price: product.current_price }} />
+                  </div>
                 </div>
 
                 {/* カテゴリ一覧へ */}
@@ -410,6 +397,9 @@ export default async function ProductPage({ params }: PageProps) {
               )}
             </div>
           </div>
+
+          {/* ユーザーレビュー */}
+          <UserReviewSection productId={product.id} />
 
           {/* スペック・仕様 */}
           <div className="bg-white border border-[#ddd]">
