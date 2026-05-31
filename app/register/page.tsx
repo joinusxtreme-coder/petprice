@@ -13,18 +13,54 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError('');
-    const { error: err } = await signUp(email, password, username);
+    const { error: err, needsConfirmation } = await signUp(email, password, username);
     if (err) {
       setError(err);
       setLoading(false);
+    } else if (needsConfirmation) {
+      // メール確認が必要な場合
+      setConfirmed(true);
+      setLoading(false);
     } else {
+      // 即時ログイン成功
       router.push('/mypage');
     }
+  }
+
+  if (confirmed) {
+    return (
+      <div className="min-h-screen bg-[#F0F0F0]" style={{ fontFamily: 'Meiryo, "Hiragino Kaku Gothic Pro", sans-serif' }}>
+        <div className="bg-[#FF6600] h-1" />
+        <header className="bg-white border-b border-[#ddd]">
+          <div className="max-w-5xl mx-auto px-3 py-2 flex items-center gap-4">
+            <Link href="/" className="shrink-0 flex items-center gap-1">
+              <span className="text-[#FF6600] font-bold text-xl leading-none">ペットプライス</span>
+            </Link>
+          </div>
+        </header>
+        <div className="max-w-md mx-auto px-3 py-16 text-center">
+          <div className="bg-white border border-[#ddd] p-8">
+            <div className="text-5xl mb-4">📧</div>
+            <h2 className="text-base font-bold text-[#333] mb-3">確認メールを送信しました</h2>
+            <p className="text-sm text-[#666] mb-2">
+              <span className="font-bold text-[#333]">{email}</span> に確認メールを送りました。
+            </p>
+            <p className="text-sm text-[#666] mb-6">
+              メール内のリンクをクリックすると登録完了です。
+            </p>
+            <Link href="/login" className="inline-block bg-[#FF6600] text-white px-6 py-2 text-sm font-bold hover:bg-[#e55a00]">
+              ログインページへ
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

@@ -8,7 +8,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   signIn: (email: string, pass: string) => Promise<{ error: string | null }>;
-  signUp: (email: string, pass: string, username: string) => Promise<{ error: string | null }>;
+  signUp: (email: string, pass: string, username: string) => Promise<{ error: string | null; needsConfirmation?: boolean }>;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -17,7 +17,7 @@ export const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   signIn: async () => ({ error: null }),
-  signUp: async () => ({ error: null }),
+  signUp: async () => ({ error: null, needsConfirmation: false }),
   signInWithGoogle: async () => {},
   signOut: async () => {},
 });
@@ -49,7 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: null };
   }
 
-  async function signUp(email: string, pass: string, username: string): Promise<{ error: string | null }> {
+  async function signUp(email: string, pass: string, username: string): Promise<{ error: string | null; needsConfirmation?: boolean }> {
     const { data, error } = await supabaseBrowser.auth.signUp({ email, password: pass });
     if (error) return { error: error.message };
     if (data.user) {
@@ -58,7 +58,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         username,
       });
     }
-    return { error: null };
+    // セッションがない = メール確認が必要
+    const needsConfirmation = !data.session;
+    return { error: null, needsConfirmation };
   }
 
   async function signInWithGoogle() {
