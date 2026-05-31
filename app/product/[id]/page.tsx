@@ -226,6 +226,64 @@ export default async function ProductPage({ params }: PageProps) {
             </div>
           </div>
 
+          {/* レビュー・評価 */}
+          <div className="bg-white border border-[#ddd]">
+            <div className="px-3 py-2 border-b border-[#ddd] bg-[#f8f8f8]">
+              <h2 className="text-sm font-bold text-[#333]">⭐ 楽天市場のレビュー</h2>
+            </div>
+            <div className="p-3">
+              {product.review_count > 0 ? (
+                <>
+                  {/* 総合評価 */}
+                  <div className="flex items-center gap-4 mb-4 pb-3 border-b border-[#eee]">
+                    <div className="text-center">
+                      <div className="text-5xl font-bold text-[#FF6600]">{Number(product.review_average).toFixed(1)}</div>
+                      <div className="text-yellow-500 text-xl mt-1">
+                        {'★'.repeat(Math.round(product.review_average))}{'☆'.repeat(5 - Math.round(product.review_average))}
+                      </div>
+                      <div className="text-xs text-[#999] mt-0.5">{product.review_count.toLocaleString()}件</div>
+                    </div>
+                    <div className="flex-1">
+                      {[5,4,3,2,1].map((star) => {
+                        // 各星の割合をreview_averageから概算
+                        const avg = product.review_average;
+                        const pct = star === Math.round(avg) ? 45
+                          : star === Math.ceil(avg) ? 25
+                          : star === Math.floor(avg) ? 20
+                          : star > avg ? Math.max(0, (star - avg) * 3)
+                          : Math.max(0, (avg - star) * 3);
+                        return (
+                          <div key={star} className="flex items-center gap-2 mb-1">
+                            <span className="text-xs text-[#666] w-4">{star}</span>
+                            <span className="text-yellow-400 text-xs">★</span>
+                            <div className="flex-1 bg-[#eee] h-2 rounded">
+                              <div className="bg-yellow-400 h-2 rounded" style={{ width: `${Math.min(100, pct * 2)}%` }} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* レビューを楽天で見る */}
+                  <div className="text-center">
+                    <a
+                      href={`${product.item_url}#reviewlistWrapper`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 bg-[#BF0000] text-white text-sm font-bold px-6 py-2 hover:bg-[#990000] transition-colors"
+                    >
+                      楽天市場で全{product.review_count.toLocaleString()}件のレビューを見る →
+                    </a>
+                    <p className="text-xs text-[#999] mt-2">※ レビューは楽天市場の商品ページに移動します</p>
+                  </div>
+                </>
+              ) : (
+                <p className="text-sm text-[#999] text-center py-4">まだレビューがありません</p>
+              )}
+            </div>
+          </div>
+
           {/* 価格推移グラフ */}
           {history && history.length > 1 && (
             <div className="bg-white border border-[#ddd]">
