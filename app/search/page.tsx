@@ -1,11 +1,14 @@
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase';
 import ProductCard from '@/components/ProductCard';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
 import { SIDEBAR_GROUPS, CATEGORY_CONFIG } from '@/lib/categories';
 
+export const dynamic = 'force-dynamic';
+
 const PER_PAGE = 40;
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 interface PageProps {
   searchParams: Promise<{
@@ -18,27 +21,48 @@ interface PageProps {
   }>;
 }
 
+interface Product {
+  id: string;
+  name: string;
+  image_url: string | null;
+  current_price: number;
+  review_count: number;
+  review_average: number;
+  shop_name?: string;
+}
+
 export default async function SearchPage({ searchParams }: PageProps) {
   const sp = await searchParams;
   const q = sp.q?.trim() || '';
   const currentPage = Math.max(1, parseInt(sp.page || '1'));
   const offset = (currentPage - 1) * PER_PAGE;
 
-  let query = supabase
-    .from('products')
-    .select('id, name, image_url, current_price, review_count, review_average, shop_name', { count: 'exact' });
+  // Supabase REST API を直接fetchで呼び出し（JS clientのilike問題を回避）
+  // URLSearchParamsは * を %2A にエンコードするため、手動でURL構築
+  const qparts: string[] = [
+    'select=id,name,image_url,current_price,review_count,review_average,shop_name',
+  ];
+  if (q) qparts.push(`name=ilike.*${encodeURIComponent(q)}*`);
+  if (sp.category && sp.category !== 'all') qparts.push(`category=eq.${encodeURIComponent(sp.category)}`);
+  else if (sp.petType && sp.petType !== 'all') qparts.push(`pet_type=eq.${encodeURIComponent(sp.petType)}`);
+  if (sp.minPrice) qparts.push(`current_price=gte.${Number(sp.minPrice)}`);
+  if (sp.maxPrice) qparts.push(`current_price=lte.${Number(sp.maxPrice)}`);
+  qparts.push('order=review_count.desc');
+  qparts.push(`offset=${offset}`);
+  qparts.push(`limit=${PER_PAGE}`);
 
-  if (q) query = query.ilike('name', `%${q}%`);
-  if (sp.category && sp.category !== 'all') query = query.eq('category', sp.category);
-  else if (sp.petType && sp.petType !== 'all') query = query.eq('pet_type', sp.petType);
-  if (sp.minPrice) query = query.gte('current_price', Number(sp.minPrice));
-  if (sp.maxPrice) query = query.lte('current_price', Number(sp.maxPrice));
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/products?${qparts.join('&')}`, {
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+      Prefer: 'count=exact',
+    },
+    cache: 'no-store',
+  });
 
-  query = query
-    .order('review_count', { ascending: false })
-    .range(offset, offset + PER_PAGE - 1);
-
-  const { data: products, count } = await query;
+  const products: Product[] = res.ok ? await res.json() : [];
+  const countHeader = res.headers.get('content-range');
+  const count = countHeader ? parseInt(countHeader.split('/')[1]) || 0 : 0;
 
   const totalPages = count ? Math.ceil(count / PER_PAGE) : 1;
 

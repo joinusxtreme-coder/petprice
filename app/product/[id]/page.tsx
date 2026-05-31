@@ -159,12 +159,18 @@ export default async function ProductPage({ params }: PageProps) {
       pricePerKg = `${Math.round(price / weightKg).toLocaleString()} 円/kg`;
     }
 
-    // 対象年齢（商品名に明記されている場合のみ - デフォルト値なし）
+    // 対象年齢（商品名に明記されている場合のみ - 複数マッチは表示しない）
+    const isPuppy = /パピー|子犬|子猫|キトン|幼犬|幼猫|1歳未満/.test(name);
+    const isSenior = /シニア|高齢|老犬|老猫|7歳以上|11歳以上|12歳以上|7才以上|11才以上/.test(name);
+    const isAdult = /成犬|成猫|アダルト|1歳以上/.test(name);
+    const ageMatchCount = [isPuppy, isSenior, isAdult].filter(Boolean).length;
     let ageGroup = '';
-    if (/パピー|子犬|子猫|キトン|幼犬|幼猫|1歳未満/.test(name)) ageGroup = 'パピー・子猫用';
-    else if (/シニア|高齢|老犬|老猫|7歳以上|11歳以上|12歳以上|7才以上|11才以上/.test(name)) ageGroup = 'シニア用（7歳以上）';
-    else if (/成犬|成猫|アダルト|1歳以上/.test(name)) ageGroup = '成犬・成猫用';
-    // ※ 「全年齢対応」はデフォルトで表示しない（不確かなため）
+    if (ageMatchCount === 1) {
+      if (isPuppy) ageGroup = 'パピー・子猫用';
+      else if (isSenior) ageGroup = 'シニア用（7歳以上）';
+      else ageGroup = '成犬・成猫用';
+    }
+    // ※ 複数の年齢グループにマッチする場合や、明記がない場合は表示しない
 
     // 対象サイズ（商品名に明記されている場合のみ）
     let size = '';

@@ -5,7 +5,7 @@ import ProductListItem from '@/components/ProductListItem';
 import RecentlyViewed from '@/components/RecentlyViewed';
 import SiteHeader from '@/components/SiteHeader';
 import PetRecommendations from '@/components/PetRecommendations';
-import { SIDEBAR_GROUPS, CATEGORY_CONFIG } from './[category]/page';
+import { SIDEBAR_GROUPS, CATEGORY_CONFIG } from '@/lib/categories';
 import { COLUMNS } from '@/lib/columns';
 import SiteFooter from '@/components/SiteFooter';
 
@@ -40,7 +40,7 @@ async function getDogRanking(limit = 5): Promise<Product[]> {
   const { data } = await supabase
     .from('products')
     .select('id, name, image_url, current_price, review_count, review_average, shop_name')
-    .eq('pet_type', 'dog')
+    .in('category', ['dog-food', 'dog-snack', 'dog-care', 'dog-toy', 'dog-goods', 'dog-walk', 'dog-clothes', 'dog-feeder', 'dog-toilet', 'dog-carrier'])
     .order('review_count', { ascending: false })
     .limit(limit);
   return (data as Product[]) || [];
@@ -174,7 +174,7 @@ export default async function HomePage() {
                 <Link href="/dog-food" className="text-xs text-[#0058B3] hover:underline">犬用品 人気ランキング ›</Link>
               </div>
               {dogRanking.length === 0 ? (
-                <p className="text-xs text-[#999] p-3">データ取得中...</p>
+                <p className="text-xs text-[#999] p-3">データがありません</p>
               ) : (
                 <div className="grid grid-cols-5 divide-x divide-[#eee] p-2">
                   {dogRanking.map((p, i) => (
@@ -191,7 +191,7 @@ export default async function HomePage() {
                 <Link href="/dog-food" className="text-xs text-[#0058B3] hover:underline">ドッグフード 人気ランキング ›</Link>
               </div>
               {dogFoodRanking.length === 0 ? (
-                <p className="text-xs text-[#999] p-3">データ取得中...</p>
+                <p className="text-xs text-[#999] p-3">データがありません</p>
               ) : (
                 <div className="grid grid-cols-5 divide-x divide-[#eee] p-2">
                   {dogFoodRanking.map((p, i) => (
@@ -208,7 +208,7 @@ export default async function HomePage() {
                 <Link href="/cat-food" className="text-xs text-[#0058B3] hover:underline">キャットフード 人気ランキング ›</Link>
               </div>
               {catFoodRanking.length === 0 ? (
-                <p className="text-xs text-[#999] p-3">データ取得中...</p>
+                <p className="text-xs text-[#999] p-3">データがありません</p>
               ) : (
                 <div className="grid grid-cols-5 divide-x divide-[#eee] p-2">
                   {catFoodRanking.map((p, i) => (
@@ -225,7 +225,7 @@ export default async function HomePage() {
                 <Link href="/cat-snack" className="text-xs text-[#0058B3] hover:underline">猫のおやつ 人気ランキング ›</Link>
               </div>
               {catSnackRanking.length === 0 ? (
-                <p className="text-xs text-[#999] p-3">データ取得中...</p>
+                <p className="text-xs text-[#999] p-3">データがありません</p>
               ) : (
                 <div className="grid grid-cols-5 divide-x divide-[#eee] p-2">
                   {catSnackRanking.map((p, i) => (
@@ -242,7 +242,7 @@ export default async function HomePage() {
                 <Link href="/pet-sheets" className="text-xs text-[#0058B3] hover:underline">ペットシーツ 人気ランキング ›</Link>
               </div>
               {petSheetsRanking.length === 0 ? (
-                <p className="text-xs text-[#999] p-3">データ取得中...</p>
+                <p className="text-xs text-[#999] p-3">データがありません</p>
               ) : (
                 <div className="grid grid-cols-5 divide-x divide-[#eee] p-2">
                   {petSheetsRanking.map((p, i) => (
