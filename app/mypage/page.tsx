@@ -7,8 +7,9 @@ import Image from 'next/image';
 import { useAuth } from '@/components/AuthProvider';
 import { supabaseBrowser } from '@/lib/supabase-browser';
 import SiteHeader from '@/components/SiteHeader';
+import RecentlyViewed from '@/components/RecentlyViewed';
 
-type Tab = 'profile' | 'pets' | 'favorites' | 'alerts' | 'reviews';
+type Tab = 'profile' | 'pets' | 'favorites' | 'alerts' | 'reviews' | 'history';
 
 interface Pet {
   id: string;
@@ -210,6 +211,7 @@ export default function MyPage() {
     { key: 'favorites', label: 'お気に入り' },
     { key: 'alerts', label: '価格アラート' },
     { key: 'reviews', label: 'マイレビュー' },
+    { key: 'history', label: '閲覧履歴' },
   ];
 
   const pagedFavs = favorites.slice(favPage * FAV_PER_PAGE, (favPage + 1) * FAV_PER_PAGE);
@@ -410,6 +412,13 @@ export default function MyPage() {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {tab === 'history' && (
+          <div className="bg-white border border-[#ddd] p-4">
+            <h2 className="text-sm font-bold text-[#333] mb-4">閲覧履歴</h2>
+            <RecentlyViewed />
           </div>
         )}
       </div>

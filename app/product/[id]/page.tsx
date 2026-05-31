@@ -12,6 +12,8 @@ import SiteHeader from '@/components/SiteHeader';
 import FavoriteButton from '@/components/FavoriteButton';
 import UserReviewSection from '@/components/UserReviewSection';
 import CompareButton from '@/components/CompareButton';
+import RecordHistory from '@/components/RecordHistory';
+import RecentlyViewed from '@/components/RecentlyViewed';
 import { CATEGORY_CONFIG, SIDEBAR_GROUPS } from '@/app/[category]/page';
 
 interface PageProps {
@@ -199,6 +201,13 @@ export default async function ProductPage({ params }: PageProps) {
 
   return (
     <div className="min-h-screen bg-[#F0F0F0]" style={{ fontFamily: 'Meiryo, "Hiragino Kaku Gothic Pro", sans-serif' }}>
+      <RecordHistory
+        id={product.id}
+        name={product.name}
+        image_url={product.image_url}
+        current_price={product.current_price}
+        category={product.category}
+      />
       <SiteHeader />
 
       {/* Breadcrumb */}
@@ -527,6 +536,9 @@ export default async function ProductPage({ params }: PageProps) {
               <AlertForm productId={product.id} currentPrice={product.current_price} />
             </div>
           </div>
+
+          {/* 閲覧履歴 */}
+          <RecentlyViewed excludeId={product.id} />
 
           {/* 関連商品 */}
           {related && related.length > 0 && (

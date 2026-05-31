@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import ProductCard from '@/components/ProductCard';
 import ProductListItem from '@/components/ProductListItem';
+import RecentlyViewed from '@/components/RecentlyViewed';
 import { SIDEBAR_GROUPS, CATEGORY_CONFIG } from './[category]/page';
 
 export const dynamic = 'force-dynamic';
@@ -140,6 +141,9 @@ export default async function HomePage() {
 
         {/* Main content */}
         <main className="flex-1 min-w-0 space-y-3">
+          {/* 閲覧履歴 */}
+          <RecentlyViewed />
+
           {/* キーワード検索 */}
           <div className="bg-white border border-[#ddd] px-3 py-2 flex items-center gap-2">
             <span className="text-xs text-[#555] shrink-0 font-bold">🔍 キーワード検索</span>
