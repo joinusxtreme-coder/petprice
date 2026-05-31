@@ -175,6 +175,7 @@ interface RakutenItem {
   itemUrl: string; affiliateUrl?: string;
   mediumImageUrls?: string[]; shopName: string;
   reviewCount?: number; reviewAverage?: number;
+  catchcopy?: string;
 }
 
 async function fetchPage(genreId: string, page: number): Promise<{ items: RakutenItem[]; pageCount: number }> {
@@ -199,8 +200,13 @@ async function fetchPage(genreId: string, page: number): Promise<{ items: Rakute
     console.error(`    API error ${res.status}: ${body.slice(0, 150)}`);
     return { items: [], pageCount: 0 };
   }
-  const data = await res.json();
-  return { items: data.Items || [], pageCount: data.pageCount || 0 };
+  try {
+    const data = await res.json();
+    return { items: data.Items || [], pageCount: data.pageCount || 0 };
+  } catch {
+    console.error(`    JSON parse error (page ${page}) → skip`);
+    return { items: [], pageCount: 0 };
+  }
 }
 
 async function upsertItems(items: RakutenItem[], category: string): Promise<number> {
