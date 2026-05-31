@@ -66,6 +66,49 @@ export default async function ProductPage({ params }: PageProps) {
   const allPrices = (history || []).map((h: { price: number }) => h.price);
   const minPrice = allPrices.length > 0 ? Math.min(...allPrices) : null;
 
+  // 商品名からスペック情報を抽出
+  function extractSpecs(name: string, category: string) {
+    const specs: { label: string; value: string }[] = [];
+
+    // ジャンル（カテゴリから）
+    if (config) specs.push({ label: 'ジャンル', value: config.label });
+
+    // タイプ（ドライ/ウェット/缶詰/パウチ）
+    if (/ドライ|乾燥/.test(name)) specs.push({ label: 'タイプ', value: 'ドライタイプ' });
+    else if (/ウェット|缶詰|缶|パウチ/.test(name)) specs.push({ label: 'タイプ', value: 'ウェットタイプ' });
+    else if (/ジャーキー/.test(name)) specs.push({ label: 'タイプ', value: 'ジャーキー' });
+    else if (/ガム/.test(name)) specs.push({ label: 'タイプ', value: 'ガム' });
+
+    // 内容量（数字+kg/g/枚/個/L/ml）
+    const weightMatch = name.match(/(\d+(?:\.\d+)?)\s*(kg|g|枚|個|L|ml|ℓ)(?:入|×\d+)?/i);
+    if (weightMatch) specs.push({ label: '内容量', value: `${weightMatch[1]}${weightMatch[2]}` });
+
+    // 対象年齢
+    if (/パピー|子犬|子猫|キトン|幼犬|幼猫/.test(name)) specs.push({ label: '対象年齢', value: 'パピー・子猫用' });
+    else if (/シニア|高齢|老犬|老猫|7歳以上|11歳以上/.test(name)) specs.push({ label: '対象年齢', value: 'シニア用' });
+    else if (/成犬|成猫|アダルト|成体/.test(name)) specs.push({ label: '対象年齢', value: '成犬・成猫用' });
+    else if (category.includes('food') || category.includes('snack')) specs.push({ label: '対象年齢', value: '全年齢対応' });
+
+    // 対象サイズ（犬のみ）
+    if (/小型犬/.test(name)) specs.push({ label: '対象サイズ', value: '小型犬' });
+    else if (/中型犬/.test(name)) specs.push({ label: '対象サイズ', value: '中型犬' });
+    else if (/大型犬/.test(name)) specs.push({ label: '対象サイズ', value: '大型犬' });
+
+    // 特徴
+    const features: string[] = [];
+    if (/無添加/.test(name)) features.push('無添加');
+    if (/グレインフリー|穀物不使用/.test(name)) features.push('グレインフリー');
+    if (/国産/.test(name)) features.push('国産');
+    if (/療法食|処方食/.test(name)) features.push('療法食');
+    if (/オーガニック/.test(name)) features.push('オーガニック');
+    if (/送料無料/.test(name)) features.push('送料無料');
+    if (features.length > 0) specs.push({ label: '特徴', value: features.join(' / ') });
+
+    return specs;
+  }
+
+  const specs = extractSpecs(product.name, product.category);
+
   return (
     <div className="min-h-screen bg-[#F0F0F0]" style={{ fontFamily: 'Meiryo, "Hiragino Kaku Gothic Pro", sans-serif' }}>
       {/* Top orange stripe */}
@@ -283,6 +326,36 @@ export default async function ProductPage({ params }: PageProps) {
               )}
             </div>
           </div>
+
+          {/* スペック・仕様 */}
+          {specs.length > 0 && (
+            <div className="bg-white border border-[#ddd]">
+              <div className="px-3 py-2 border-b border-[#ddd] bg-[#f8f8f8]">
+                <h2 className="text-sm font-bold text-[#333]">📋 スペック・仕様</h2>
+              </div>
+              <div className="p-3">
+                {/* catchcopy（商品説明文） */}
+                {product.description && (
+                  <p className="text-xs text-[#555] bg-[#FFF5EE] border border-[#FFD0B0] px-3 py-2 mb-3 leading-relaxed">
+                    {product.description}
+                  </p>
+                )}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-0 border border-[#ddd]">
+                  {specs.map((s, i) => (
+                    <div key={i} className={`flex border-b border-[#eee] ${i % 2 === 0 ? '' : 'md:border-l md:border-[#eee]'}`}>
+                      <div className="bg-[#f0f0f0] text-xs text-[#555] font-bold px-3 py-2 w-28 shrink-0 border-r border-[#eee]">
+                        {s.label}
+                      </div>
+                      <div className="text-xs text-[#333] px-3 py-2 flex-1">
+                        {s.value}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-[#999] mt-2">※ スペック情報は商品名から自動抽出しています。詳細は楽天市場の商品ページをご確認ください。</p>
+              </div>
+            </div>
+          )}
 
           {/* 価格推移グラフ */}
           {history && history.length > 1 && (

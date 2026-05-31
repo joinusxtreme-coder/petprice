@@ -12,6 +12,8 @@ export interface RakutenItem {
   reviewAverage: number;
   genreId: string;
   tagIds: number[];
+  catchcopy?: string;
+  itemCaption?: string;
 }
 
 export interface RakutenSearchResponse {

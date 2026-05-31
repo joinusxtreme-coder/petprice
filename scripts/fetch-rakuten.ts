@@ -231,6 +231,7 @@ async function upsertItems(items: RakutenItem[], category: string): Promise<numb
         shop_name: item.shopName,
         review_count: item.reviewCount ?? 0,
         review_average: item.reviewAverage ?? 0,
+        description: item.catchcopy || null,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'rakuten_item_id' })
       .select('id')
