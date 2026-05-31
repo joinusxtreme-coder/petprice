@@ -133,6 +133,25 @@ export const POPULAR_SEARCHES: Record<string, string[]> = {
 
 const PAGE_SIZE = 20;
 
+// 症状・目的別フィルタータグ（フード系カテゴリ向け）
+export const FOOD_FEATURE_TAGS = [
+  { label: 'グレインフリー', keyword: 'グレインフリー' },
+  { label: '穀物不使用', keyword: '穀物不使用' },
+  { label: '無添加', keyword: '無添加' },
+  { label: '国産', keyword: '国産' },
+  { label: 'シニア用', keyword: 'シニア' },
+  { label: 'パピー・子猫用', keyword: 'パピー' },
+  { label: 'ダイエット', keyword: 'ダイエット' },
+  { label: '皮膚・被毛ケア', keyword: '皮膚' },
+  { label: '尿路ケア', keyword: '尿路' },
+  { label: '療法食', keyword: '療法食' },
+  { label: '毛玉ケア', keyword: '毛玉' },
+  { label: '関節ケア', keyword: '関節' },
+  { label: 'オーガニック', keyword: 'オーガニック' },
+];
+
+const FOOD_CATEGORIES = ['dog-food', 'cat-food', 'dog-snack', 'cat-snack', 'bird-food', 'small-animal-food', 'fish-food', 'reptile-food'];
+
 interface PageProps {
   params: Promise<{ category: string }>;
   searchParams: Promise<{
@@ -143,6 +162,7 @@ interface PageProps {
     sort?: string;
     page?: string;
     brand?: string;
+    feature?: string;
   }>;
 }
 
@@ -220,6 +240,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
   if (sp.age && sp.age !== 'all') query = query.eq('age_group', sp.age);
   if (sp.minReview) query = query.gte('review_average', Number(sp.minReview));
   if (sp.brand) query = query.eq('brand', sp.brand);
+  if (sp.feature) query = query.ilike('name', `%${sp.feature}%`);
 
   if (sort === 'price_asc') query = query.order('current_price', { ascending: true });
   else if (sort === 'price_desc') query = query.order('current_price', { ascending: false });
@@ -234,7 +255,8 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
     return `/${category}?${p.toString()}`;
   }
 
-  const isFiltered = !!(sp.minPrice || sp.maxPrice || (sp.age && sp.age !== 'all') || sp.minReview || sp.brand);
+  const isFiltered = !!(sp.minPrice || sp.maxPrice || (sp.age && sp.age !== 'all') || sp.minReview || sp.brand || sp.feature);
+  const isFoodCategory = FOOD_CATEGORIES.includes(category);
 
   return (
     <div className="min-h-screen bg-[#F0F0F0]" style={{ fontFamily: 'Meiryo, "Hiragino Kaku Gothic Pro", sans-serif' }}>
@@ -317,6 +339,24 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
               )}
             </form>
           </div>
+
+          {/* 症状・目的別フィルター（フード系のみ） */}
+          {isFoodCategory && (
+            <div className="bg-white border border-[#ddd]">
+              <div className="bg-[#0058B3] text-white text-xs font-bold px-2 py-1">目的・特徴で絞り込む</div>
+              {FOOD_FEATURE_TAGS.map((tag) => (
+                <Link
+                  key={tag.keyword}
+                  href={sp.feature === tag.keyword ? `/${category}` : `/${category}?feature=${encodeURIComponent(tag.keyword)}`}
+                  className={`flex items-center px-2 py-1.5 text-xs border-t border-[#eee] hover:bg-[#EEF5FF] transition-colors ${
+                    sp.feature === tag.keyword ? 'text-[#0058B3] font-bold bg-[#EEF5FF]' : 'text-[#333]'
+                  }`}
+                >
+                  {sp.feature === tag.keyword ? '✓ ' : '　'}{tag.label}
+                </Link>
+              ))}
+            </div>
+          )}
 
           {/* ブランドフィルター */}
           {brands.length > 0 && (
@@ -458,12 +498,21 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
             </section>
           )}
 
+          {/* フィルター適用中バッジ */}
+          {sp.feature && (
+            <div className="bg-[#EEF5FF] border border-[#0058B3] px-3 py-2 flex items-center gap-2 text-xs">
+              <span className="text-[#0058B3] font-bold">🔍 絞り込み中:</span>
+              <span className="bg-[#0058B3] text-white px-2 py-0.5 font-bold">{sp.feature}</span>
+              <Link href={`/${category}`} className="ml-auto text-[#999] hover:text-[#FF6600]">✕ 解除</Link>
+            </div>
+          )}
+
           {/* 全製品リスト */}
           <section className="bg-white border border-[#ddd]">
             <div className="flex items-center justify-between px-3 py-2 border-b border-[#ddd] bg-[#f8f8f8]">
               <div className="flex items-center gap-3">
                 <h2 className="text-sm font-bold text-[#333]">
-                  人気売れ筋ランキング
+                  {sp.feature ? `「${sp.feature}」の商品` : '人気売れ筋ランキング'}
                 </h2>
                 {count != null && (
                   <span className="text-xs text-[#999]">{count.toLocaleString()}件</span>
@@ -476,6 +525,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
                   <input type="hidden" name="maxPrice" value={sp.maxPrice || ''} />
                   <input type="hidden" name="age" value={sp.age || ''} />
                   <input type="hidden" name="minReview" value={sp.minReview || ''} />
+                  <input type="hidden" name="feature" value={sp.feature || ''} />
                   <select name="sort" defaultValue={sort} className="border border-[#ccc] text-xs px-1 py-1 focus:outline-none focus:border-[#FF6600]">
                     <option value="review_count">人気順</option>
                     <option value="price_asc">安い順</option>

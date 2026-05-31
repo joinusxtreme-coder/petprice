@@ -54,27 +54,41 @@ export async function GET(req: NextRequest) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          from: 'ペットプライス <noreply@petprice.jp>',
+          from: process.env.RESEND_FROM_EMAIL || 'ペットプライス <noreply@petprices.jp>',
           to: [toEmail],
           subject: `【ペットプライス】価格が下がりました！¥${product.current_price.toLocaleString()}`,
           html: `
-            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #ddd;">
               <div style="background: #FF6600; color: white; padding: 16px 24px;">
                 <h1 style="margin: 0; font-size: 20px;">🐾 ペットプライス</h1>
+                <p style="margin: 4px 0 0; font-size: 12px; opacity: 0.8;">ペット用品 価格比較・通販</p>
               </div>
               <div style="padding: 24px;">
-                <h2 style="color: #CC0000; font-size: 18px;">🎉 価格が下がりました！</h2>
-                <div style="background: #f5f5f5; border-left: 4px solid #CC0000; padding: 16px; margin: 16px 0;">
-                  <p style="margin: 0 0 8px; font-size: 14px; color: #333; font-weight: bold;">${product.name}</p>
-                  <p style="margin: 0 0 4px; font-size: 13px; color: #666;">目標価格: ¥${alert.target_price.toLocaleString()}</p>
-                  <p style="margin: 0; font-size: 20px; color: #CC0000; font-weight: bold;">現在価格: ¥${product.current_price.toLocaleString()}</p>
+                <h2 style="color: #CC0000; font-size: 18px; margin: 0 0 16px;">🎉 価格が下がりました！</h2>
+                <div style="background: #fff8f0; border: 1px solid #FF6600; border-left: 4px solid #CC0000; padding: 16px; margin: 0 0 20px; border-radius: 2px;">
+                  <p style="margin: 0 0 10px; font-size: 14px; color: #333; font-weight: bold; line-height: 1.5;">${product.name}</p>
+                  <table style="width: 100%; font-size: 13px;">
+                    <tr>
+                      <td style="color: #666; padding: 3px 0;">目標価格</td>
+                      <td style="color: #666; text-align: right;">¥${alert.target_price.toLocaleString()}</td>
+                    </tr>
+                    <tr>
+                      <td style="color: #CC0000; font-weight: bold; padding: 3px 0; font-size: 16px;">現在価格</td>
+                      <td style="color: #CC0000; font-weight: bold; text-align: right; font-size: 18px;">¥${product.current_price.toLocaleString()}</td>
+                    </tr>
+                    <tr>
+                      <td style="color: #009900; font-size: 12px; padding: 3px 0;">目標より</td>
+                      <td style="color: #009900; font-size: 12px; text-align: right;">▼ ¥${(alert.target_price - product.current_price).toLocaleString()} お得！</td>
+                    </tr>
+                  </table>
                 </div>
-                <a href="https://petprice.jp/product/${product.id}"
-                   style="display: inline-block; background: #FF6600; color: white; padding: 12px 24px; text-decoration: none; font-weight: bold; font-size: 14px;">
+                <a href="${process.env.NEXT_PUBLIC_SITE_URL || 'https://petprices.jp'}/product/${product.id}"
+                   style="display: inline-block; background: #FF6600; color: white; padding: 12px 28px; text-decoration: none; font-weight: bold; font-size: 15px; border-radius: 2px;">
                   今すぐ確認する →
                 </a>
-                <p style="color: #999; font-size: 12px; margin-top: 24px;">
-                  価格アラートの解除は<a href="https://petprice.jp/mypage">マイページ</a>から行えます。
+                <p style="color: #999; font-size: 11px; margin-top: 24px; border-top: 1px solid #eee; padding-top: 16px;">
+                  このアラートは自動的に解除されました。再設定は<a href="${process.env.NEXT_PUBLIC_SITE_URL || 'https://petprices.jp'}/product/${product.id}" style="color: #0058B3;">商品ページ</a>から行えます。<br>
+                  マイページでアラート管理: <a href="${process.env.NEXT_PUBLIC_SITE_URL || 'https://petprices.jp'}/mypage" style="color: #0058B3;">マイページへ</a>
                 </p>
               </div>
             </div>
@@ -83,10 +97,10 @@ export async function GET(req: NextRequest) {
       });
 
       if (res.ok) {
-        // 通知済みフラグを立てる
+        // 通知済み → アラートを非アクティブ化（再設定で再利用可能）
         await supabaseAdmin
           .from('price_alerts')
-          .update({ notified_at: new Date().toISOString() })
+          .update({ is_active: false, notified_at: new Date().toISOString() })
           .eq('id', alert.id);
         sent++;
       }

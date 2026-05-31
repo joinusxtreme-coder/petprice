@@ -194,7 +194,58 @@ export default async function ProductPage({ params }: PageProps) {
       { label: '送料無料', on: /送料無料/.test(name) },
     ].filter(f => f.on);
 
-    return { genre, type, weight, count, calorie, pricePerKg, ageGroup, size, itemSize, features };
+    // 主原料（タンパク質源）
+    let mainIngredient = '';
+    if (category.includes('food') || category.includes('snack')) {
+      const ingredients = [
+        { pattern: /チキン|鶏肉|鶏/, label: 'チキン（鶏肉）' },
+        { pattern: /サーモン|鮭/, label: 'サーモン（鮭）' },
+        { pattern: /ラム|羊肉/, label: 'ラム（羊肉）' },
+        { pattern: /マグロ|ツナ|まぐろ/, label: 'マグロ' },
+        { pattern: /牛肉|ビーフ/, label: 'ビーフ（牛肉）' },
+        { pattern: /ポーク|豚肉/, label: 'ポーク（豚肉）' },
+        { pattern: /カツオ|かつお/, label: 'かつお' },
+        { label: 'ダック（鴨肉）', pattern: /ダック|鴨肉/ },
+        { label: 'ベニソン（鹿肉）', pattern: /ベニソン|鹿肉/ },
+        { label: 'ターキー（七面鳥）', pattern: /ターキー|七面鳥/ },
+        { label: 'カンガルー', pattern: /カンガルー/ },
+        { label: 'タラ・白身魚', pattern: /タラ|白身魚|ホワイトフィッシュ/ },
+        { label: 'エビ', pattern: /えび|エビ/ },
+      ];
+      for (const ing of ingredients) {
+        if (ing.pattern.test(name)) {
+          mainIngredient = ing.label;
+          break;
+        }
+      }
+    }
+
+    // メーカー・ブランド名の抽出
+    let maker = '';
+    const makerPatterns = [
+      { pattern: /ヒルズ|Hill's|HILL'S/i, label: 'ヒルズ（Hill\'s）' },
+      { pattern: /ロイヤルカナン|Royal Canin/i, label: 'ロイヤルカナン' },
+      { pattern: /ニュートロ|Nutro/i, label: 'ニュートロ（Nutro）' },
+      { pattern: /アカナ|ACANA/i, label: 'アカナ（ACANA）' },
+      { pattern: /オリジン|ORIJEN/i, label: 'オリジン（ORIJEN）' },
+      { pattern: /モグニャン/i, label: 'モグニャン' },
+      { pattern: /モグワン/i, label: 'モグワン' },
+      { pattern: /ピュリナ|Purina/i, label: 'ピュリナ（Nestle）' },
+      { pattern: /サイエンス・ダイエット/i, label: 'ヒルズ サイエンス・ダイエット' },
+      { pattern: /INABA|いなば/i, label: 'いなばペットフード' },
+      { pattern: /アイシア|Aixia/i, label: 'アイシア' },
+      { pattern: /カルカン|Kalkun/i, label: 'カルカン（Mars）' },
+      { pattern: /デビフ|d\.b\.f/i, label: 'デビフ' },
+      { pattern: /グランデリ/i, label: 'グランデリ（ドギーマン）' },
+    ];
+    for (const m of makerPatterns) {
+      if (m.pattern.test(name)) {
+        maker = m.label;
+        break;
+      }
+    }
+
+    return { genre, type, weight, count, calorie, pricePerKg, ageGroup, size, itemSize, features, mainIngredient, maker };
   }
 
   const specData = extractProductInfo(product.name, product.current_price, product.category);
@@ -432,6 +483,12 @@ export default async function ProductPage({ params }: PageProps) {
                   <div className="bg-[#0058B3] text-white text-xs font-bold px-3 py-1.5 mb-0">製品情報</div>
                   <table className="w-full text-xs border border-[#ddd] border-t-0">
                     <tbody>
+                      {specData.maker && (
+                        <tr className="border-b border-[#eee]">
+                          <td className="bg-[#f5f5f5] px-3 py-2 w-32 font-bold text-[#555] border-r border-[#eee]">メーカー</td>
+                          <td className="px-3 py-2 font-bold text-[#333]">{specData.maker}</td>
+                        </tr>
+                      )}
                       {specData.genre && (
                         <tr className="border-b border-[#eee]">
                           <td className="bg-[#f5f5f5] px-3 py-2 w-32 font-bold text-[#555] border-r border-[#eee]">ジャンル</td>
@@ -466,6 +523,12 @@ export default async function ProductPage({ params }: PageProps) {
                         <tr className="border-b border-[#eee]">
                           <td className="bg-[#f5f5f5] px-3 py-2 font-bold text-[#555] border-r border-[#eee]">サイズ</td>
                           <td className="px-3 py-2 text-[#0058B3] font-bold">{specData.itemSize}</td>
+                        </tr>
+                      )}
+                      {specData.mainIngredient && (
+                        <tr className="border-b border-[#eee]">
+                          <td className="bg-[#f5f5f5] px-3 py-2 font-bold text-[#555] border-r border-[#eee]">主原料</td>
+                          <td className="px-3 py-2 text-[#0058B3] font-bold">{specData.mainIngredient}</td>
                         </tr>
                       )}
                       {specData.calorie && (

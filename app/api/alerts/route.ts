@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'ペットプライス <noreply@petprice.jp>',
+        from: process.env.RESEND_FROM_EMAIL || 'ペットプライス <noreply@petprices.jp>',
         to: [email],
         subject: '【ペットプライス】価格アラートを設定しました',
         html: `
