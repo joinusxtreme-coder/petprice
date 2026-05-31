@@ -18,6 +18,7 @@ import SubscriptionSimulator from '@/components/SubscriptionSimulator';
 import PetRecommendations from '@/components/PetRecommendations';
 import { CATEGORY_CONFIG, SIDEBAR_GROUPS } from '@/app/[category]/page';
 import { extractItemCode, fetchItemDetail, parseItemCaption } from '@/lib/rakuten';
+import SiteFooter from '@/components/SiteFooter';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -665,25 +666,7 @@ export default async function ProductPage({ params }: PageProps) {
         </main>
       </div>
 
-      {/* Footer */}
-      <footer className="bg-[#333] text-white mt-6 py-4 px-3 text-xs text-[#aaa]">
-        <div className="max-w-5xl mx-auto flex flex-wrap justify-center gap-8 mb-3">
-          {SIDEBAR_GROUPS.map((section) => (
-            <div key={section.label}>
-              <p className="font-bold text-white mb-1">{section.label}</p>
-              {section.subgroups.flatMap((sub) => sub.keys).map((key) => (
-                <Link key={key} href={`/${key}`} className="block text-[#aaa] hover:text-white mb-0.5">
-                  {CATEGORY_CONFIG[key].label}
-                </Link>
-              ))}
-            </div>
-          ))}
-        </div>
-        <div className="border-t border-[#555] pt-3 text-center">
-          <p>ペットプライス - ペット用品 通販・価格比較</p>
-          <p className="mt-1">楽天市場の商品情報を毎日自動取得・比較。※ 価格は実際の価格と異なる場合があります。</p>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

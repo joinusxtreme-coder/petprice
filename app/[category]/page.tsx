@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import ProductCard from '@/components/ProductCard';
 import ProductListItem from '@/components/ProductListItem';
 import SiteHeader from '@/components/SiteHeader';
+import SiteFooter from '@/components/SiteFooter';
 
 export const CATEGORY_CONFIG: Record<string, { label: string; icon: string; petType: string; dbCategory: string; group: string }> = {
   // 犬用品
@@ -622,25 +623,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
         </main>
       </div>
 
-      {/* Footer */}
-      <footer className="bg-[#333] text-white mt-6 py-4 px-3 text-xs text-center text-[#aaa]">
-        <div className="max-w-5xl mx-auto flex flex-wrap justify-center gap-6 mb-3">
-          {SIDEBAR_GROUPS.map((section) => (
-            <div key={section.label}>
-              <p className="font-bold text-white mb-1">{section.label}</p>
-              {section.subgroups.flatMap((sub) => sub.keys).map((key) => (
-                <Link key={key} href={`/${key}`} className="block text-[#aaa] hover:text-white mb-0.5">
-                  {CATEGORY_CONFIG[key].label}
-                </Link>
-              ))}
-            </div>
-          ))}
-        </div>
-        <div className="border-t border-[#555] pt-3">
-          <p>ペットプライス - ペット用品 通販・価格比較</p>
-          <p className="mt-1">楽天市場の商品情報を毎日自動取得・比較。※ 価格は実際の価格と異なる場合があります。</p>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

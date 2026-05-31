@@ -2,39 +2,64 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import ProductCard from '@/components/ProductCard';
 import SiteHeader from '@/components/SiteHeader';
+import SiteFooter from '@/components/SiteFooter';
 import { SIDEBAR_GROUPS, CATEGORY_CONFIG } from '@/app/[category]/page';
+
+const PER_PAGE = 40;
 
 interface PageProps {
   searchParams: Promise<{
     q?: string;
     petType?: string;
+    category?: string;
     minPrice?: string;
     maxPrice?: string;
+    page?: string;
   }>;
 }
 
 export default async function SearchPage({ searchParams }: PageProps) {
   const sp = await searchParams;
   const q = sp.q?.trim() || '';
+  const currentPage = Math.max(1, parseInt(sp.page || '1'));
+  const offset = (currentPage - 1) * PER_PAGE;
 
   let query = supabase
     .from('products')
     .select('id, name, image_url, current_price, review_count, review_average, shop_name', { count: 'exact' });
 
   if (q) query = query.ilike('name', `%${q}%`);
-  if (sp.petType && sp.petType !== 'all') query = query.eq('pet_type', sp.petType);
+  if (sp.category && sp.category !== 'all') query = query.eq('category', sp.category);
+  else if (sp.petType && sp.petType !== 'all') query = query.eq('pet_type', sp.petType);
   if (sp.minPrice) query = query.gte('current_price', Number(sp.minPrice));
   if (sp.maxPrice) query = query.lte('current_price', Number(sp.maxPrice));
 
-  query = query.order('review_count', { ascending: false }).limit(40);
+  query = query
+    .order('review_count', { ascending: false })
+    .range(offset, offset + PER_PAGE - 1);
 
   const { data: products, count } = await query;
+
+  const totalPages = count ? Math.ceil(count / PER_PAGE) : 1;
+
+  function buildUrl(page: number) {
+    const params = new URLSearchParams();
+    if (q) params.set('q', q);
+    if (sp.category && sp.category !== 'all') params.set('category', sp.category);
+    if (sp.petType && sp.petType !== 'all') params.set('petType', sp.petType);
+    if (sp.minPrice) params.set('minPrice', sp.minPrice);
+    if (sp.maxPrice) params.set('maxPrice', sp.maxPrice);
+    params.set('page', String(page));
+    return `/search?${params.toString()}`;
+  }
+
+  // カテゴリ一覧（フラット）
+  const allCategories = Object.entries(CATEGORY_CONFIG).map(([key, cfg]) => ({ key, label: cfg.label }));
 
   return (
     <div className="min-h-screen bg-[#F0F0F0]" style={{ fontFamily: 'Meiryo, "Hiragino Kaku Gothic Pro", sans-serif' }}>
       <SiteHeader />
 
-      {/* Breadcrumb */}
       <div className="bg-white border-b border-[#eee]">
         <div className="max-w-5xl mx-auto px-3 py-1 text-xs text-[#666]">
           <Link href="/" className="text-[#0058B3] hover:underline">ホーム</Link>
@@ -95,12 +120,12 @@ export default async function SearchPage({ searchParams }: PageProps) {
               </div>
               <div className="flex flex-wrap items-center gap-3 text-xs">
                 <div className="flex items-center gap-1">
-                  <span className="text-[#666]">ペット種別:</span>
-                  <select name="petType" defaultValue={sp.petType || 'all'} className="border border-[#ccc] px-2 py-1 text-xs focus:outline-none">
+                  <span className="text-[#666]">カテゴリ:</span>
+                  <select name="category" defaultValue={sp.category || 'all'} className="border border-[#ccc] px-2 py-1 text-xs focus:outline-none max-w-[160px]">
                     <option value="all">すべて</option>
-                    <option value="dog">犬</option>
-                    <option value="cat">猫</option>
-                    <option value="other">その他</option>
+                    {allCategories.map(({ key, label }) => (
+                      <option key={key} value={key}>{label}</option>
+                    ))}
                   </select>
                 </div>
                 <div className="flex items-center gap-1">
@@ -121,7 +146,9 @@ export default async function SearchPage({ searchParams }: PageProps) {
                 {q ? `「${q}」の検索結果` : '検索結果'}
               </h2>
               {count != null && (
-                <span className="text-xs text-[#999]">{count.toLocaleString()}件</span>
+                <span className="text-xs text-[#999]">
+                  {count.toLocaleString()}件中 {offset + 1}〜{Math.min(offset + PER_PAGE, count)}件表示
+                </span>
               )}
             </div>
 
@@ -134,7 +161,7 @@ export default async function SearchPage({ searchParams }: PageProps) {
                 {q && <p className="text-xs mt-1">別のキーワードをお試しください</p>}
               </div>
             ) : (
-              <div className="grid grid-cols-4 divide-x divide-y divide-[#eee]">
+              <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y divide-[#eee]">
                 {products.map((p) => (
                   <ProductCard
                     key={p.id}
@@ -143,29 +170,39 @@ export default async function SearchPage({ searchParams }: PageProps) {
                 ))}
               </div>
             )}
+
+            {/* ページネーション */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-1 px-3 py-3 border-t border-[#eee]">
+                {currentPage > 1 && (
+                  <Link href={buildUrl(currentPage - 1)}
+                    className="px-3 py-1 border border-[#ddd] text-xs text-[#0058B3] hover:border-[#FF6600]">
+                    ← 前へ
+                  </Link>
+                )}
+                {Array.from({ length: Math.min(totalPages, 10) }, (_, i) => {
+                  const page = i + 1;
+                  return (
+                    <Link key={page} href={buildUrl(page)}
+                      className={`px-3 py-1 border text-xs ${currentPage === page ? 'bg-[#FF6600] text-white border-[#FF6600]' : 'border-[#ddd] text-[#0058B3] hover:border-[#FF6600]'}`}>
+                      {page}
+                    </Link>
+                  );
+                })}
+                {totalPages > 10 && <span className="text-xs text-[#999]">... 全{totalPages}ページ</span>}
+                {currentPage < totalPages && (
+                  <Link href={buildUrl(currentPage + 1)}
+                    className="px-3 py-1 border border-[#ddd] text-xs text-[#0058B3] hover:border-[#FF6600]">
+                    次へ →
+                  </Link>
+                )}
+              </div>
+            )}
           </div>
         </main>
       </div>
 
-      {/* Footer */}
-      <footer className="bg-[#333] text-white mt-6 py-4 px-3 text-xs text-[#aaa]">
-        <div className="max-w-5xl mx-auto flex flex-wrap justify-center gap-8 mb-3">
-          {SIDEBAR_GROUPS.map((section) => (
-            <div key={section.label}>
-              <p className="font-bold text-white mb-1">{section.label}</p>
-              {section.subgroups.flatMap((sub) => sub.keys).map((key) => (
-                <Link key={key} href={`/${key}`} className="block text-[#aaa] hover:text-white mb-0.5">
-                  {CATEGORY_CONFIG[key].label}
-                </Link>
-              ))}
-            </div>
-          ))}
-        </div>
-        <div className="border-t border-[#555] pt-3 text-center">
-          <p>ペットプライス - ペット用品 通販・価格比較</p>
-          <p className="mt-1">楽天市場の商品情報を毎日自動取得・比較。※ 価格は実際の価格と異なる場合があります。</p>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }
