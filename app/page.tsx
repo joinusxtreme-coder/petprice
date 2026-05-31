@@ -4,6 +4,7 @@ import ProductCard from '@/components/ProductCard';
 import ProductListItem from '@/components/ProductListItem';
 import RecentlyViewed from '@/components/RecentlyViewed';
 import SiteHeader from '@/components/SiteHeader';
+import PetRecommendations from '@/components/PetRecommendations';
 import { SIDEBAR_GROUPS, CATEGORY_CONFIG } from './[category]/page';
 
 export const dynamic = 'force-dynamic';
@@ -123,6 +124,26 @@ export default async function HomePage() {
           {/* 閲覧履歴 */}
           <RecentlyViewed />
 
+          {/* ペット情報連動おすすめ（ログイン時のみ表示） */}
+          <PetRecommendations />
+
+          {/* 値下がり商品（最上部に移動・目立たせる） */}
+          {dropped.length > 0 && (
+            <section className="bg-white border-2 border-[#CC0000]">
+              <div className="flex items-center justify-between px-3 py-2 border-b border-[#CC0000] bg-[#CC0000]">
+                <h2 className="text-sm font-bold text-white">
+                  ▼ 今日の値下がり商品
+                </h2>
+                <span className="text-xs text-white opacity-80">{dropped.length}件</span>
+              </div>
+              <div className="px-3">
+                {dropped.map((p, i) => (
+                  <ProductListItem key={p.id} product={p} rank={i + 1} />
+                ))}
+              </div>
+            </section>
+          )}
+
           {/* キーワード検索 */}
           <div className="bg-white border border-[#ddd] px-3 py-2 flex items-center gap-2">
             <span className="text-xs text-[#555] shrink-0 font-bold">🔍 キーワード検索</span>
@@ -230,22 +251,6 @@ export default async function HomePage() {
             </div>
           </section>
 
-          {/* 値下がり商品 */}
-          {dropped.length > 0 && (
-            <section className="bg-white border border-[#ddd]">
-              <div className="flex items-center justify-between px-3 py-2 border-b border-[#ddd] bg-[#f8f8f8]">
-                <h2 className="text-sm font-bold text-[#333]">
-                  <span className="text-red-600 mr-1">▼</span>今日の値下がり商品
-                </h2>
-                <span className="text-xs text-[#999]">{dropped.length}件</span>
-              </div>
-              <div className="px-3">
-                {dropped.map((p, i) => (
-                  <ProductListItem key={p.id} product={p} rank={i + 1} />
-                ))}
-              </div>
-            </section>
-          )}
 
           {/* サイト説明 */}
           <section className="bg-white border border-[#ddd] p-3">

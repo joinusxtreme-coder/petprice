@@ -20,6 +20,14 @@ interface Pet {
   weight_kg: number | null;
 }
 
+interface WeightLog {
+  id: string;
+  pet_id: string;
+  weight_kg: number;
+  recorded_at: string;
+  notes: string | null;
+}
+
 interface FavoriteItem {
   id: string;
   product_id: string;
@@ -68,6 +76,14 @@ export default function MyPage() {
   const [petAge, setPetAge] = useState('');
   const [petWeight, setPetWeight] = useState('');
   const [petAdding, setPetAdding] = useState(false);
+
+  // Weight logs
+  const [weightLogs, setWeightLogs] = useState<WeightLog[]>([]);
+  const [selectedPetId, setSelectedPetId] = useState<string>('');
+  const [newWeight, setNewWeight] = useState('');
+  const [weightDate, setWeightDate] = useState(new Date().toISOString().split('T')[0]);
+  const [weightNotes, setWeightNotes] = useState('');
+  const [weightSaving, setWeightSaving] = useState(false);
 
   // Favorites
   const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
@@ -154,6 +170,32 @@ export default function MyPage() {
   async function deletePet(id: string) {
     await supabaseBrowser.from('pets').delete().eq('id', id);
     setPets((prev) => prev.filter((p) => p.id !== id));
+  }
+
+  async function loadWeightLogs(petId: string) {
+    const { data } = await supabaseBrowser
+      .from('pet_weight_logs')
+      .select('id, pet_id, weight_kg, recorded_at, notes')
+      .eq('pet_id', petId)
+      .order('recorded_at', { ascending: false })
+      .limit(10);
+    setWeightLogs(data || []);
+  }
+
+  async function addWeightLog(e: React.FormEvent) {
+    e.preventDefault();
+    if (!selectedPetId || !newWeight) return;
+    setWeightSaving(true);
+    await supabaseBrowser.from('pet_weight_logs').insert({
+      pet_id: selectedPetId,
+      weight_kg: parseFloat(newWeight),
+      recorded_at: weightDate,
+      notes: weightNotes || null,
+    });
+    setNewWeight('');
+    setWeightNotes('');
+    await loadWeightLogs(selectedPetId);
+    setWeightSaving(false);
   }
 
   async function loadFavorites() {
@@ -322,6 +364,73 @@ export default function MyPage() {
                 {petAdding ? '追加中...' : 'ペットを追加する'}
               </button>
             </form>
+
+            {/* 体重記録 */}
+            {pets.length > 0 && (
+              <div className="mt-6 pt-4 border-t border-[#eee]">
+                <h3 className="text-xs font-bold text-[#333] mb-3">⚖️ 体重記録</h3>
+                <div className="mb-3">
+                  <label className="text-xs text-[#666] block mb-1">ペットを選択</label>
+                  <select
+                    value={selectedPetId}
+                    onChange={(e) => { setSelectedPetId(e.target.value); if (e.target.value) loadWeightLogs(e.target.value); }}
+                    className="border border-[#ccc] px-2 py-1.5 text-xs focus:outline-none w-full max-w-xs"
+                  >
+                    <option value="">選択してください</option>
+                    {pets.map((p) => <option key={p.id} value={p.id}>{p.name}（{p.species}）</option>)}
+                  </select>
+                </div>
+                {selectedPetId && (
+                  <>
+                    <form onSubmit={addWeightLog} className="flex gap-2 items-end flex-wrap mb-3">
+                      <div>
+                        <label className="text-xs text-[#666] block mb-1">体重(kg)</label>
+                        <input type="number" step="0.1" min="0" required value={newWeight} onChange={(e) => setNewWeight(e.target.value)} className="border border-[#ccc] px-2 py-1.5 text-xs w-24 focus:outline-none focus:border-[#FF6600]" placeholder="3.5" />
+                      </div>
+                      <div>
+                        <label className="text-xs text-[#666] block mb-1">日付</label>
+                        <input type="date" value={weightDate} onChange={(e) => setWeightDate(e.target.value)} className="border border-[#ccc] px-2 py-1.5 text-xs focus:outline-none" />
+                      </div>
+                      <div>
+                        <label className="text-xs text-[#666] block mb-1">メモ</label>
+                        <input value={weightNotes} onChange={(e) => setWeightNotes(e.target.value)} className="border border-[#ccc] px-2 py-1.5 text-xs w-32 focus:outline-none" placeholder="健康診断後など" />
+                      </div>
+                      <button type="submit" disabled={weightSaving} className="bg-[#0058B3] text-white px-3 py-1.5 text-xs font-bold hover:bg-[#004494] disabled:opacity-50">
+                        {weightSaving ? '記録中...' : '記録する'}
+                      </button>
+                    </form>
+                    {weightLogs.length > 0 && (
+                      <div className="border border-[#eee] text-xs">
+                        <div className="bg-[#f5f5f5] px-3 py-1.5 font-bold text-[#555] flex gap-4">
+                          <span className="w-24">日付</span>
+                          <span className="w-16">体重</span>
+                          <span>メモ</span>
+                        </div>
+                        {weightLogs.map((log, i) => {
+                          const prevLog = weightLogs[i + 1];
+                          const diff = prevLog ? log.weight_kg - prevLog.weight_kg : null;
+                          return (
+                            <div key={log.id} className="flex gap-4 px-3 py-2 border-t border-[#eee] items-center">
+                              <span className="w-24 text-[#666]">{log.recorded_at}</span>
+                              <span className="w-16 font-bold text-[#333]">{log.weight_kg}kg
+                                {diff !== null && (
+                                  <span className={`ml-1 text-xs ${diff > 0 ? 'text-[#CC0000]' : diff < 0 ? 'text-green-600' : 'text-[#999]'}`}>
+                                    {diff > 0 ? `▲${diff.toFixed(1)}` : diff < 0 ? `▼${Math.abs(diff).toFixed(1)}` : '→'}
+                                  </span>
+                                )}
+                              </span>
+                              <span className="text-[#999] flex-1">{log.notes || ''}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {weightLogs.length === 0 && <p className="text-xs text-[#999]">まだ体重記録がありません</p>}
+                  </>
+                )}
+                <p className="text-xs text-[#999] mt-2">※ 体重記録機能はSupabaseに <code>pet_weight_logs</code> テーブルが必要です。</p>
+              </div>
+            )}
           </div>
         )}
 

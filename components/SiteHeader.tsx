@@ -71,6 +71,7 @@ export default function SiteHeader() {
             <Link href="/ranking" className="text-[#0058B3] hover:text-[#FF6600] font-bold">🏆 ランキング</Link>
             <Link href="/community" className="text-[#0058B3] hover:text-[#FF6600]">💬 コミュニティ</Link>
             <Link href="/compare" className="text-[#0058B3] hover:text-[#FF6600]">⚖️ 比較</Link>
+            <Link href="/column" className="text-[#0058B3] hover:text-[#FF6600]">📝 コラム</Link>
           </div>
         </nav>
       </header>

@@ -30,11 +30,25 @@ function RankBadge({ rank }: { rank: number }) {
   );
 }
 
+function extractFeatureTags(name: string): string[] {
+  const tags: string[] = [];
+  if (/グレインフリー|穀物不使用/.test(name)) tags.push('グレインフリー');
+  else if (/無添加/.test(name)) tags.push('無添加');
+  if (/国産/.test(name)) tags.push('国産');
+  if (/シニア/.test(name)) tags.push('シニア');
+  else if (/パピー|子犬|子猫|キトン/.test(name)) tags.push('パピー');
+  if (/療法食|処方食/.test(name)) tags.push('療法食');
+  if (/ダイエット|体重管理/.test(name)) tags.push('ダイエット');
+  if (/尿路/.test(name)) tags.push('尿路ケア');
+  return tags.slice(0, 2);
+}
+
 export default function ProductCard({ product, rank }: ProductCardProps) {
   const discountRate =
     product.prev_price && product.prev_price > product.current_price
       ? Math.round((1 - product.current_price / product.prev_price) * 100)
       : null;
+  const featureTags = extractFeatureTags(product.name);
 
   const stars = Math.round(product.review_average * 2) / 2; // 0.5刻み
   const fullStars = Math.floor(stars);
@@ -82,6 +96,13 @@ export default function ProductCard({ product, rank }: ProductCardProps) {
         <Link href={`/product/${product.id}`} className="text-xs text-[#0058B3] hover:underline leading-snug line-clamp-3 block mb-1 flex-1">
           {product.name}
         </Link>
+        {featureTags.length > 0 && (
+          <div className="flex flex-wrap gap-0.5 mb-1">
+            {featureTags.map((tag) => (
+              <span key={tag} className="text-xs bg-[#EEF5FF] text-[#0058B3] px-1 py-0.5 leading-none" style={{ fontSize: '10px' }}>{tag}</span>
+            ))}
+          </div>
+        )}
 
         {product.prev_price && product.prev_price > product.current_price && (
           <p className="text-xs text-[#999] line-through">¥{product.prev_price.toLocaleString()}</p>

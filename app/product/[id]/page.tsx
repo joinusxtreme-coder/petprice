@@ -15,6 +15,7 @@ import CompareButton from '@/components/CompareButton';
 import RecordHistory from '@/components/RecordHistory';
 import RecentlyViewed from '@/components/RecentlyViewed';
 import SubscriptionSimulator from '@/components/SubscriptionSimulator';
+import PetRecommendations from '@/components/PetRecommendations';
 import { CATEGORY_CONFIG, SIDEBAR_GROUPS } from '@/app/[category]/page';
 
 interface PageProps {
@@ -23,11 +24,22 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps) {
   const { id } = await params;
-  const { data: product } = await supabase.from('products').select('name, current_price').eq('id', id).single();
+  const { data: product } = await supabase.from('products').select('name, current_price, image_url').eq('id', id).single();
   if (!product) return {};
   return {
     title: `${product.name}の最安値・価格比較 | ペットプライス`,
     description: `${product.name}の楽天市場最安値${product.current_price.toLocaleString()}円。30日間の価格推移グラフで買い時がわかる。`,
+    openGraph: {
+      title: `${product.name} | ペットプライス`,
+      description: `最安値 ¥${product.current_price.toLocaleString()}（税込）`,
+      images: product.image_url ? [{ url: product.image_url, width: 400, height: 400 }] : [],
+    },
+    twitter: {
+      card: 'summary',
+      title: `${product.name} | ペットプライス`,
+      description: `最安値 ¥${product.current_price.toLocaleString()}`,
+      images: product.image_url ? [product.image_url] : [],
+    },
   };
 }
 
@@ -356,6 +368,13 @@ export default async function ProductPage({ params }: PageProps) {
                   )}
                 </div>
 
+                {/* 楽天ポイント概算 */}
+                <div className="text-xs text-[#E95000] bg-[#FFF5EE] border border-[#FFD0A0] px-2 py-1 inline-flex items-center gap-1">
+                  <span>🎁 楽天ポイント概算:</span>
+                  <span className="font-bold">{Math.floor(product.current_price / 100).toLocaleString()} pt〜</span>
+                  <span className="text-[#999]">（通常1%、SPUで最大15%以上）</span>
+                </div>
+
                 {/* 最安値情報 */}
                 {minPrice && minPrice < product.current_price && (
                   <div className="text-xs text-[#666] bg-[#f8f8f8] border border-[#eee] px-2 py-1">
@@ -607,11 +626,14 @@ export default async function ProductPage({ params }: PageProps) {
           {/* 閲覧履歴 */}
           <RecentlyViewed excludeId={product.id} />
 
-          {/* 関連商品 */}
+          {/* ペット連動おすすめ */}
+          <PetRecommendations />
+
+          {/* この商品を見た人はこちらも */}
           {related && related.length > 0 && (
             <section className="bg-white border border-[#ddd]">
               <div className="px-3 py-2 border-b border-[#ddd] bg-[#f8f8f8]">
-                <h2 className="text-sm font-bold text-[#333]">関連商品</h2>
+                <h2 className="text-sm font-bold text-[#333]">👀 この商品を見た人はこちらも</h2>
               </div>
               <div className="grid grid-cols-4 divide-x divide-[#eee] p-2">
                 {(related as { id: string; name: string; image_url: string | null; current_price: number; review_count: number; review_average: number; shop_name?: string }[]).map((p) => (

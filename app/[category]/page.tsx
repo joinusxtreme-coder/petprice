@@ -185,6 +185,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
   const page = Number(sp.page || 1);
   const sort = sp.sort || 'review_count';
   const from = (page - 1) * PAGE_SIZE;
+  const isPricePerKgSort = sort === 'price_per_kg' && FOOD_CATEGORIES.includes(category);
 
   // トップ5（注目ランキング用）
   const { data: top5 } = await supabase
@@ -242,12 +243,46 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
   if (sp.brand) query = query.eq('brand', sp.brand);
   if (sp.feature) query = query.ilike('name', `%${sp.feature}%`);
 
-  if (sort === 'price_asc') query = query.order('current_price', { ascending: true });
+  if (isPricePerKgSort) {
+    // 1kgあたり価格ソート: 大量取得してJS側でソート
+    query = query.order('review_count', { ascending: false }).limit(200);
+  } else if (sort === 'price_asc') query = query.order('current_price', { ascending: true });
   else if (sort === 'price_desc') query = query.order('current_price', { ascending: false });
   else query = query.order('review_count', { ascending: false });
 
-  query = query.range(from, from + PAGE_SIZE - 1);
-  const { data: products, count } = await query;
+  if (!isPricePerKgSort) query = query.range(from, from + PAGE_SIZE - 1);
+
+  const { data: rawProducts, count } = await query;
+
+  // 1kgあたり価格ソート処理
+  function extractWeightKg(name: string): number {
+    const multi = name.match(/(\d+(?:\.\d+)?)\s*(kg|g)\s*[×xX×]\s*(\d+)/i);
+    if (multi) {
+      const val = parseFloat(multi[1]);
+      const unit = multi[2].toLowerCase();
+      const cnt = parseInt(multi[3]);
+      return (unit === 'kg' ? val : val / 1000) * cnt;
+    }
+    const single = name.match(/(\d+(?:\.\d+)?)\s*(kg|g)(?![a-zA-Z])/i);
+    if (single) {
+      const val = parseFloat(single[1]);
+      return single[2].toLowerCase() === 'kg' ? val : val / 1000;
+    }
+    return 0;
+  }
+
+  let products = rawProducts;
+  if (isPricePerKgSort && rawProducts) {
+    const withPpk = rawProducts
+      .map((p) => {
+        const wkg = extractWeightKg(p.name);
+        return { ...p, ppk: wkg > 0 ? p.current_price / wkg : Infinity };
+      })
+      .filter((p) => p.ppk < Infinity)
+      .sort((a, b) => a.ppk - b.ppk);
+    products = withPpk.slice(from, from + PAGE_SIZE) as typeof rawProducts;
+  }
+
   const totalPages = Math.ceil((count || 0) / PAGE_SIZE);
 
   function buildUrl(overrides: Record<string, string>) {
@@ -530,6 +565,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
                     <option value="review_count">人気順</option>
                     <option value="price_asc">安い順</option>
                     <option value="price_desc">高い順</option>
+                    {isFoodCategory && <option value="price_per_kg">1kgあたり安い順</option>}
                   </select>
                   <button type="submit" className="text-xs bg-[#ddd] border border-[#ccc] px-2 py-1 hover:bg-[#ccc]">並替</button>
                 </form>
