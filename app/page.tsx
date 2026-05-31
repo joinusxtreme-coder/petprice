@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import ProductCard from '@/components/ProductCard';
 import ProductListItem from '@/components/ProductListItem';
 import RecentlyViewed from '@/components/RecentlyViewed';
+import SiteHeader from '@/components/SiteHeader';
 import { SIDEBAR_GROUPS, CATEGORY_CONFIG } from './[category]/page';
 
 export const dynamic = 'force-dynamic';
@@ -78,29 +79,7 @@ export default async function HomePage() {
 
   return (
     <div className="min-h-screen bg-[#F0F0F0]" style={{ fontFamily: 'Meiryo, "Hiragino Kaku Gothic Pro", sans-serif' }}>
-      {/* Top orange stripe */}
-      <div className="bg-[#FF6600] h-1" />
-
-      {/* Header */}
-      <header className="bg-white border-b border-[#ddd]">
-        <div className="max-w-5xl mx-auto px-3 py-2 flex items-center gap-4">
-          <Link href="/" className="shrink-0 flex items-center gap-1">
-            <span className="text-[#FF6600] font-bold text-2xl leading-none">ペットプライス</span>
-            <span className="text-[#666] text-lg ml-1">🐾 ペット</span>
-          </Link>
-          <form action="/search" className="flex-1 max-w-lg flex">
-            <input
-              name="q"
-              placeholder="キーワード検索"
-              className="flex-1 border border-[#ccc] border-r-0 px-3 py-1.5 text-sm focus:outline-none focus:border-[#FF6600]"
-            />
-            <button type="submit" className="bg-[#FF6600] text-white px-4 py-1.5 text-sm font-bold hover:bg-[#e55a00]">
-              検索
-            </button>
-          </form>
-          <span className="text-xs text-[#999] hidden md:block ml-auto">● 毎日3時更新</span>
-        </div>
-      </header>
+      <SiteHeader />
 
       {/* Breadcrumb */}
       <div className="bg-white border-b border-[#eee]">
