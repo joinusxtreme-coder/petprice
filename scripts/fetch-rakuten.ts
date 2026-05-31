@@ -55,9 +55,6 @@ const GENRE_CATEGORY: [string, string][] = [
   ['206153', 'dog-carrier'],
   // ── キャットフード
   ['565724', 'cat-food'],
-  ['112125', 'cat-food'],
-  // ── 猫おやつ
-  // (112125はcat-foodと重複するが猫おやつも含む)
   // ── 食器・給水器(猫)
   ['206297', 'cat-feeder'],
   // ── 猫トイレ・猫砂
@@ -126,6 +123,23 @@ const UNIQUE_GENRES = (() => {
 
 function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)); }
 
+// ペット関連商品かどうかのフィルター
+const PET_KEYWORDS = /犬|猫|ドッグ|キャット|ペット|わんこ|ニャン|パピー|シニア犬|シニア猫|インコ|オウム|文鳥|鳥|ハムスター|うさぎ|ウサギ|フェレット|モルモット|水槽|アクアリウム|熱帯魚|金魚|メダカ|爬虫類|カメ|トカゲ|カブトムシ|クワガタ|昆虫|ドッグフード|キャットフード|ペットシーツ|猫砂|キャットタワー|ハーネス|リード|首輪|グルーミング|ノミ|ダニ|デンタル|爪切り|ペットベッド|ケージ|フード 犬|フード 猫/;
+
+function isPetProduct(name: string, category: string): boolean {
+  // カテゴリが明確にペット系なら緩め
+  if (['dog-food','cat-food','dog-snack','cat-snack','cat-toilet','cat-tower',
+       'bird-food','bird-goods','small-animal-food','small-animal-goods',
+       'fish-food','fish-tank','fish-goods','reptile-food','reptile-goods','insect-goods',
+       'pet-sheets'].includes(category)) {
+    // それでも明らかに無関係なものは除外（名前にペット系単語が全くない）
+    // ただし水槽・アクア系は商品名が英語等もあるので緩く
+    if (['fish-food','fish-tank','fish-goods','reptile-food','reptile-goods','insect-goods'].includes(category)) return true;
+    return PET_KEYWORDS.test(name);
+  }
+  return PET_KEYWORDS.test(name);
+}
+
 function detectPetType(category: string): string {
   if (category.startsWith('dog')) return 'dog';
   if (category.startsWith('cat')) return 'cat';
@@ -191,7 +205,13 @@ async function fetchPage(genreId: string, page: number): Promise<{ items: Rakute
 
 async function upsertItems(items: RakutenItem[], category: string): Promise<number> {
   let count = 0;
+  let skipped = 0;
   for (const item of items) {
+    // ペット関係ない商品を除外
+    if (!isPetProduct(item.itemName, category)) {
+      skipped++;
+      continue;
+    }
     const imageRaw = item.mediumImageUrls?.[0] ?? null;
     const imageUrl = imageRaw ? imageRaw.replace('_ex=128x128', '_ex=400x400') : null;
 
@@ -217,6 +237,7 @@ async function upsertItems(items: RakutenItem[], category: string): Promise<numb
       .single();
 
     if (error) { console.error(`    upsert error: ${error.message}`); continue; }
+    if (skipped > 0) { /* logged at end */ }
     if (product) {
       count++;
       await supabase.from('price_history').insert({
