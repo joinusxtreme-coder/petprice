@@ -8,7 +8,7 @@ const CATEGORIES = [
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://petprice-sand.vercel.app';
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.petprices.jp';
 
   const { data: products } = await supabase
     .from('products')
