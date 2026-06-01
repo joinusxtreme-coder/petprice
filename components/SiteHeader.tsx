@@ -93,6 +93,7 @@ export default function SiteHeader() {
             <Link href="/community" className="text-[#0058B3] hover:text-[#FF6600] whitespace-nowrap">💬 コミュニティ</Link>
             <Link href="/compare" className="text-[#0058B3] hover:text-[#FF6600] whitespace-nowrap">⚖️ 比較</Link>
             <Link href="/column" className="text-[#0058B3] hover:text-[#FF6600] whitespace-nowrap">📝 コラム</Link>
+            <Link href="/insurance" className="text-[#0058B3] hover:text-[#FF6600] whitespace-nowrap font-bold">🐾 保険比較</Link>
           </div>
         </nav>
       </header>
@@ -136,6 +137,7 @@ export default function SiteHeader() {
                 { href: '/community', label: '💬 コミュニティ' },
                 { href: '/compare', label: '⚖️ 比較' },
                 { href: '/column', label: '📝 コラム' },
+                { href: '/insurance', label: '🐾 保険比較' },
               ].map((item) => (
                 <Link key={item.href} href={item.href} onClick={() => setMenuOpen(false)}
                   className="text-[#0058B3] hover:text-[#FF6600] font-bold">
