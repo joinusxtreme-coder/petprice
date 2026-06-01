@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
+import { InlineFoodAd, MogwanBanner320x50 } from '@/components/A8Ads';
 
 // ──────────────────────────────────────────
 // 保険プランデータ（2025年調査時点）
@@ -304,6 +305,14 @@ export default function InsurancePage() {
               <p>多くの保険は7〜8歳以上での新規加入が難しくなります。若いうちに加入するほど保険料が安く、将来も継続しやすくなります。</p>
             </div>
           </div>
+        </div>
+
+        {/* A8.net アフィリエイト広告 */}
+        <InlineFoodAd />
+
+        {/* 横型バナー */}
+        <div className="mt-4 flex justify-center">
+          <MogwanBanner320x50 />
         </div>
 
         <p className="text-xs text-[#999] mt-4 text-center">

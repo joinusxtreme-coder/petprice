@@ -8,6 +8,7 @@ import PetRecommendations from '@/components/PetRecommendations';
 import { SIDEBAR_GROUPS, CATEGORY_CONFIG } from '@/lib/categories';
 import { COLUMNS } from '@/lib/columns';
 import SiteFooter from '@/components/SiteFooter';
+import { SidebarAdWidget, InlineFoodAd } from '@/components/A8Ads';
 
 export const dynamic = 'force-dynamic';
 
@@ -119,6 +120,11 @@ export default async function HomePage() {
               <div className="border-t border-[#eee]" />
             </div>
           ))}
+
+          {/* A8.net 広告 */}
+          <div className="mt-3">
+            <SidebarAdWidget />
+          </div>
         </aside>
 
         {/* Main content */}
@@ -296,6 +302,9 @@ export default async function HomePage() {
               </Link>
             </div>
           </section>
+
+          {/* A8.net アフィリエイト広告 */}
+          <InlineFoodAd />
 
           {/* サイト説明 */}
           <section className="bg-white border border-[#ddd] p-3">
