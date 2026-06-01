@@ -16,6 +16,9 @@ export const metadata: Metadata = {
     default: "ペットプライス | ペット用品の最安値比較",
     template: "%s | ペットプライス",
   },
+  verification: {
+    google: 'uvGficZwe-DyzWv7Ek8kOMWTHBVPickTWFSNBxV_r7o',
+  },
   description: "楽天市場のドッグフード・キャットフードを毎日自動取得。30日間の価格推移グラフで最安値・買い時がわかる比較サイト。",
   metadataBase: new URL(BASE_URL),
   alternates: {
