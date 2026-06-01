@@ -6,6 +6,7 @@ import ProductListItem from '@/components/ProductListItem';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
 import { CATEGORY_CONFIG, SIDEBAR_GROUPS, POPULAR_SEARCHES, FOOD_FEATURE_TAGS, FOOD_CATEGORIES } from '@/lib/categories';
+import { SidebarAdWidget, CatAdWidget, InlineDogFoodAd, InlineCatAd } from '@/components/A8Ads';
 
 export { CATEGORY_CONFIG, SIDEBAR_GROUPS } from '@/lib/categories';
 
@@ -274,6 +275,9 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
             </div>
           )}
 
+          {/* サイドバー広告 */}
+          {config.petType === 'cat' ? <CatAdWidget /> : <SidebarAdWidget />}
+
           {/* カテゴリ一覧（サブグループ付き） */}
           <div className="bg-white border border-[#ddd]">
             <div className="bg-[#f0f0f0] text-[#555] text-xs font-bold px-2 py-1.5 border-b border-[#ddd]">カテゴリ一覧</div>
@@ -390,6 +394,11 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
                 ))}
               </div>
             </section>
+          )}
+
+          {/* インライン広告（ページ上部・非フィルター時） */}
+          {!isFiltered && page === 1 && (
+            config.petType === 'cat' ? <InlineCatAd /> : <InlineDogFoodAd />
           )}
 
           {/* フィルター適用中バッジ */}
