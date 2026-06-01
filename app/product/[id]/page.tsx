@@ -19,7 +19,6 @@ import PetRecommendations from '@/components/PetRecommendations';
 import { CATEGORY_CONFIG, SIDEBAR_GROUPS } from '@/lib/categories';
 import { extractItemCode, fetchItemDetail, parseItemCaption } from '@/lib/rakuten';
 import SiteFooter from '@/components/SiteFooter';
-import IngredientScoreBadge from '@/components/IngredientScoreBadge';
 import MultiMallPrices from '@/components/MultiMallPrices';
 
 interface PageProps {
@@ -422,6 +421,20 @@ export default async function ProductPage({ params }: PageProps) {
             </div>
           </div>
 
+          {/* マルチモール最安値比較 */}
+          <div className="bg-white border border-[#ddd]">
+            <div className="px-3 py-2 border-b border-[#ddd] bg-[#f8f8f8]">
+              <h2 className="text-sm font-bold text-[#333]">🏪 他モールでも探す</h2>
+            </div>
+            <div className="p-3">
+              <MultiMallPrices
+                productName={product.name}
+                rakutenPrice={product.current_price}
+                rakutenUrl={product.affiliate_url || product.item_url || '#'}
+              />
+            </div>
+          </div>
+
           {/* レビュー・評価 */}
           <div className="bg-white border border-[#ddd]">
             <div className="px-3 py-2 border-b border-[#ddd] bg-[#f8f8f8]">
@@ -604,13 +617,6 @@ export default async function ProductPage({ params }: PageProps) {
                 </div>
               )}
 
-              {/* 成分安全スコア */}
-              <IngredientScoreBadge
-                name={product.name}
-                ingredients={displayIngredients || undefined}
-                category={product.category}
-              />
-
               <div className="mt-2 flex items-center gap-2">
                 {rakutenDetail ? (
                   <span className="text-xs text-[#009900] bg-[#f0fff0] border border-[#99cc99] px-2 py-0.5">
@@ -653,20 +659,6 @@ export default async function ProductPage({ params }: PageProps) {
             </div>
             <div className="p-3">
               <AlertForm productId={product.id} currentPrice={product.current_price} />
-            </div>
-          </div>
-
-          {/* マルチモール最安値比較 */}
-          <div className="bg-white border border-[#ddd]">
-            <div className="px-3 py-2 border-b border-[#ddd] bg-[#f8f8f8]">
-              <h2 className="text-sm font-bold text-[#333]">🏪 他モールでの価格を確認</h2>
-            </div>
-            <div className="p-3">
-              <MultiMallPrices
-                productName={product.name}
-                rakutenPrice={product.current_price}
-                rakutenUrl={product.affiliate_url || product.item_url || '#'}
-              />
             </div>
           </div>
 
