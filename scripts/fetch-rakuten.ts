@@ -23,9 +23,12 @@ const GENRE_CATEGORY: [string, string][] = [
   ['404099', 'dog-snack'],
   ['206138', 'dog-snack'],
   ['404097', 'dog-snack'],
-  // ── 食器・給水器(犬)
-  ['210756', 'dog-feeder'],
-  ['304226', 'dog-feeder'],
+  ['206135', 'dog-snack'],   // おやつ（犬）
+  // ── 食器・給水器(犬/ペット共通)
+  ['206139', 'dog-feeder'],  // ペット用食器・給水器・給餌器（親）
+  ['210756', 'dog-feeder'],  // 食器
+  ['304226', 'dog-feeder'],  // 食器台・テーブル
+  ['404114', 'dog-feeder'],  // 給水器
   // ── 犬トイレ
   ['206205', 'dog-toilet'],
   // ── お散歩・ハーネス
@@ -37,21 +40,20 @@ const GENRE_CATEGORY: [string, string][] = [
   ['112933', 'dog-care'],
   ['112114', 'dog-care'],
   ['404102', 'dog-care'],
-  // ── 犬服
-  ['206181', 'dog-clothes'],
-  ['200431', 'dog-clothes'],
+  // ── 犬服（ドッグウェア）
+  ['206155', 'dog-clothes'],  // ドッグウェア（旧:206181,200431）
   // ── 犬おもちゃ
-  ['215337', 'dog-toy'],
-  ['215339', 'dog-toy'],
-  ['409796', 'dog-toy'],
+  ['215333', 'dog-toy'],  // おもちゃ（旧:215337,409796）
+  ['215339', 'dog-toy'],  // ぬいぐるみ
   // ── 犬小屋・ケージ・ベッド
   ['206193', 'dog-goods'],
   ['206201', 'dog-goods'],
   // ── 犬キャリー
   ['206150', 'dog-carrier'],
-  ['206151', 'dog-carrier'],
+  ['206151', 'dog-carrier'],  // リュックキャリー
   ['206152', 'dog-carrier'],
   ['206153', 'dog-carrier'],
+  ['206154', 'dog-carrier'],  // カート
   // ── キャットフード
   ['565724', 'cat-food'],
   // ── 食器・給水器(猫)
@@ -61,6 +63,7 @@ const GENRE_CATEGORY: [string, string][] = [
   // ── キャットタワー
   ['206265', 'cat-tower'],
   // ── 猫おやつ
+  ['215352', 'cat-snack'],   // おやつ（猫）
   ['206345', 'cat-snack'],
   ['409780', 'cat-snack'],
   // ── 猫ケア・グルーミング
@@ -68,13 +71,14 @@ const GENRE_CATEGORY: [string, string][] = [
   ['215355', 'cat-care'],
   ['206350', 'cat-care'],
   // ── 猫おもちゃ
-  ['215363', 'cat-toy'],
+  ['215363', 'cat-toy'],  // 猫じゃらし
   ['112121', 'cat-toy'],
   ['404161', 'cat-toy'],
   // ── 猫ベッド・マット
   ['206287', 'cat-goods'],
   ['409760', 'cat-goods'],
   // ── 猫キャリー
+  ['206267', 'cat-carrier'],  // キャリーバッグ・カート
   ['206269', 'cat-carrier'],
   ['206271', 'cat-carrier'],
   ['404137', 'cat-carrier'],
@@ -87,24 +91,23 @@ const GENRE_CATEGORY: [string, string][] = [
   ['204185', 'bird-goods'],
   ['565706', 'bird-food'],
   // ── 小動物フード・用品
-  ['565702', 'small-animal-food'],
-  ['565705', 'small-animal-food'],
-  ['565703', 'small-animal-goods'],
-  ['565704', 'small-animal-goods'],
+  ['565699', 'small-animal-food'],   // 小動物用品（旧:565702-565705）
   // ── 熱帯魚えさ
   ['507542', 'fish-food'],
   ['507550', 'fish-food'],
   // ── 水槽・フィルター
+  ['206304', 'fish-tank'],   // 水槽・アクアリウム（親）
   ['206305', 'fish-tank'],
   ['206311', 'fish-tank'],
+  ['565701', 'fish-tank'],   // 水槽・アクアリウム内装
   ['565726', 'fish-tank'],
   ['215405', 'fish-tank'],
   ['101217', 'fish-tank'],
   // ── 爬虫類えさ・用品
-  ['560200', 'reptile-food'],
+  ['560198', 'reptile-food'],  // 爬虫類・両生類（旧:560200）
   ['101218', 'reptile-goods'],
   // ── 昆虫飼育
-  ['509408', 'insect-goods'],
+  ['409839', 'insect-goods'],  // 昆虫（旧:509408）
 ];
 
 // 重複ジャンルID除去
@@ -121,17 +124,9 @@ const UNIQUE_GENRES = (() => {
 
 function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)); }
 
-const PET_KEYWORDS = /犬|猫|ドッグ|キャット|ペット|わんこ|ニャン|パピー|シニア犬|シニア猫|インコ|オウム|文鳥|鳥|ハムスター|うさぎ|ウサギ|フェレット|モルモット|水槽|アクアリウム|熱帯魚|金魚|メダカ|爬虫類|カメ|トカゲ|カブトムシ|クワガタ|昆虫|ドッグフード|キャットフード|ペットシーツ|猫砂|キャットタワー|ハーネス|リード|首輪|グルーミング|ノミ|ダニ|デンタル|爪切り|ペットベッド|ケージ/;
-
-function isPetProduct(name: string, category: string): boolean {
-  if (['dog-food','cat-food','dog-snack','cat-snack','cat-toilet','cat-tower',
-       'bird-food','bird-goods','small-animal-food','small-animal-goods',
-       'fish-food','fish-tank','fish-goods','reptile-food','reptile-goods','insect-goods',
-       'pet-sheets'].includes(category)) {
-    if (['fish-food','fish-tank','fish-goods','reptile-food','reptile-goods','insect-goods'].includes(category)) return true;
-    return PET_KEYWORDS.test(name);
-  }
-  return PET_KEYWORDS.test(name);
+function isPetProduct(_name: string, _category: string): boolean {
+  // 全ジャンルIDがペット専用カテゴリのため、キーワードフィルター不要
+  return true;
 }
 
 function detectPetType(category: string): string {
