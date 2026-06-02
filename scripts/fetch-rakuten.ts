@@ -10,11 +10,10 @@ const supabase = createClient(
 );
 
 const API = 'https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20220601';
-const HEADERS = { Referer: 'https://petprice-sand.vercel.app', Origin: 'https://petprice-sand.vercel.app' };
+const HEADERS = { Referer: 'https://www.petprices.jp', Origin: 'https://www.petprices.jp' };
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 楽天の実ジャンルID → サイトカテゴリ マッピング
-// (probe-genres.ts / probe-genres2.ts で実測済み)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const GENRE_CATEGORY: [string, string][] = [
   // ── ドッグフード
@@ -61,10 +60,10 @@ const GENRE_CATEGORY: [string, string][] = [
   ['204174', 'cat-toilet'],
   // ── キャットタワー
   ['206265', 'cat-tower'],
-  // ── 猫おやつ（追加）
+  // ── 猫おやつ
   ['206345', 'cat-snack'],
   ['409780', 'cat-snack'],
-  // ── 猫ケア・グルーミング（追加）
+  // ── 猫ケア・グルーミング
   ['404151', 'cat-care'],
   ['215355', 'cat-care'],
   ['206350', 'cat-care'],
@@ -83,15 +82,14 @@ const GENRE_CATEGORY: [string, string][] = [
   ['404162', 'cat-carrier'],
   // ── ペットシーツ
   ['409755', 'pet-sheets'],
-  // ── 鳥のえさ・用品（追加）
+  // ── 鳥のえさ・用品
   ['204184', 'bird-food'],
   ['204185', 'bird-goods'],
   ['565706', 'bird-food'],
-  // ── 小動物フード・用品（追加）
+  // ── 小動物フード・用品
   ['565702', 'small-animal-food'],
   ['565705', 'small-animal-food'],
   ['565703', 'small-animal-goods'],
-  // ── 小動物用品
   ['565704', 'small-animal-goods'],
   // ── 熱帯魚えさ
   ['507542', 'fish-food'],
@@ -109,7 +107,7 @@ const GENRE_CATEGORY: [string, string][] = [
   ['509408', 'insect-goods'],
 ];
 
-// 重複ジャンルID除去（最初のカテゴリを優先）
+// 重複ジャンルID除去
 const UNIQUE_GENRES = (() => {
   const seen = new Set<string>();
   return GENRE_CATEGORY.filter(([id]) => {
@@ -123,17 +121,13 @@ const UNIQUE_GENRES = (() => {
 
 function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)); }
 
-// ペット関連商品かどうかのフィルター
-const PET_KEYWORDS = /犬|猫|ドッグ|キャット|ペット|わんこ|ニャン|パピー|シニア犬|シニア猫|インコ|オウム|文鳥|鳥|ハムスター|うさぎ|ウサギ|フェレット|モルモット|水槽|アクアリウム|熱帯魚|金魚|メダカ|爬虫類|カメ|トカゲ|カブトムシ|クワガタ|昆虫|ドッグフード|キャットフード|ペットシーツ|猫砂|キャットタワー|ハーネス|リード|首輪|グルーミング|ノミ|ダニ|デンタル|爪切り|ペットベッド|ケージ|フード 犬|フード 猫/;
+const PET_KEYWORDS = /犬|猫|ドッグ|キャット|ペット|わんこ|ニャン|パピー|シニア犬|シニア猫|インコ|オウム|文鳥|鳥|ハムスター|うさぎ|ウサギ|フェレット|モルモット|水槽|アクアリウム|熱帯魚|金魚|メダカ|爬虫類|カメ|トカゲ|カブトムシ|クワガタ|昆虫|ドッグフード|キャットフード|ペットシーツ|猫砂|キャットタワー|ハーネス|リード|首輪|グルーミング|ノミ|ダニ|デンタル|爪切り|ペットベッド|ケージ/;
 
 function isPetProduct(name: string, category: string): boolean {
-  // カテゴリが明確にペット系なら緩め
   if (['dog-food','cat-food','dog-snack','cat-snack','cat-toilet','cat-tower',
        'bird-food','bird-goods','small-animal-food','small-animal-goods',
        'fish-food','fish-tank','fish-goods','reptile-food','reptile-goods','insect-goods',
        'pet-sheets'].includes(category)) {
-    // それでも明らかに無関係なものは除外（名前にペット系単語が全くない）
-    // ただし水槽・アクア系は商品名が英語等もあるので緩く
     if (['fish-food','fish-tank','fish-goods','reptile-food','reptile-goods','insect-goods'].includes(category)) return true;
     return PET_KEYWORDS.test(name);
   }
@@ -191,9 +185,9 @@ async function fetchPage(genreId: string, page: number): Promise<{ items: Rakute
   });
   const res = await fetch(`${API}?${params}`, { headers: HEADERS });
   if (res.status === 429) {
-    console.log('    ⚠ 429 レート制限 → 5秒待機');
-    await sleep(5000);
-    return fetchPage(genreId, page); // リトライ
+    console.log('    ⚠ 429 レート制限 → 3秒待機');
+    await sleep(3000);
+    return fetchPage(genreId, page);
   }
   if (!res.ok) {
     const body = await res.text();
@@ -209,58 +203,69 @@ async function fetchPage(genreId: string, page: number): Promise<{ items: Rakute
   }
 }
 
-async function upsertItems(items: RakutenItem[], category: string): Promise<number> {
-  let count = 0;
-  let skipped = 0;
-  for (const item of items) {
-    // ペット関係ない商品を除外
-    if (!isPetProduct(item.itemName, category)) {
-      skipped++;
-      continue;
-    }
-    const imageRaw = item.mediumImageUrls?.[0] ?? null;
-    const imageUrl = imageRaw ? imageRaw.replace('_ex=128x128', '_ex=400x400') : null;
+// ━━━ バッチupsert（高速化：個別upsertではなく一括処理）━━━
 
-    const { data: product, error } = await supabase
-      .from('products')
-      .upsert({
-        rakuten_item_id: item.itemCode,
-        name: item.itemName,
-        category,
-        pet_type: detectPetType(category),
-        age_group: detectAgeGroup(item.itemName),
-        brand: extractBrand(item.itemName) || null,
-        image_url: imageUrl,
-        item_url: item.itemUrl,
-        affiliate_url: item.affiliateUrl || item.itemUrl,
-        current_price: item.itemPrice,
-        shop_name: item.shopName,
-        review_count: item.reviewCount ?? 0,
-        review_average: item.reviewAverage ?? 0,
-        description: item.catchcopy || null,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'rakuten_item_id' })
-      .select('id')
-      .single();
+async function batchUpsertItems(items: RakutenItem[], category: string): Promise<number> {
+  // 1) ペット関連でないものを除外
+  const filtered = items.filter(item => isPetProduct(item.itemName, category));
+  if (filtered.length === 0) return 0;
 
-    if (error) { console.error(`    upsert error: ${error.message}`); continue; }
-    if (skipped > 0) { /* logged at end */ }
-    if (product) {
-      count++;
-      await supabase.from('price_history').insert({
-        product_id: product.id,
-        price: item.itemPrice,
-        shop_name: item.shopName,
-      });
-    }
+  const now = new Date().toISOString();
+  const rows = filtered.map(item => ({
+    rakuten_item_id: item.itemCode,
+    name: item.itemName,
+    category,
+    pet_type: detectPetType(category),
+    age_group: detectAgeGroup(item.itemName),
+    brand: extractBrand(item.itemName) || null,
+    image_url: item.mediumImageUrls?.[0]
+      ? item.mediumImageUrls[0].replace('_ex=128x128', '_ex=400x400')
+      : null,
+    item_url: item.itemUrl,
+    affiliate_url: item.affiliateUrl || item.itemUrl,
+    current_price: item.itemPrice,
+    shop_name: item.shopName,
+    review_count: item.reviewCount ?? 0,
+    review_average: item.reviewAverage ?? 0,
+    description: item.catchcopy || null,
+    updated_at: now,
+  }));
+
+  // 2) バッチupsert（30件まとめて1回のAPIコール）
+  const { data: upserted, error } = await supabase
+    .from('products')
+    .upsert(rows, { onConflict: 'rakuten_item_id' })
+    .select('id, rakuten_item_id, current_price, shop_name');
+
+  if (error) {
+    console.error(`    batch upsert error: ${error.message}`);
+    return 0;
   }
-  return count;
+
+  if (!upserted || upserted.length === 0) return 0;
+
+  // 3) 価格履歴をバッチinsert
+  const priceHistoryRows = upserted.map((p: { id: string; current_price: number; shop_name: string }) => ({
+    product_id: p.id,
+    price: p.current_price,
+    shop_name: p.shop_name,
+  }));
+
+  const { error: histError } = await supabase
+    .from('price_history')
+    .insert(priceHistoryRows);
+
+  if (histError) {
+    console.error(`    price_history insert error: ${histError.message}`);
+  }
+
+  return upserted.length;
 }
 
 // ━━━ メイン ━━━
 
 async function main() {
-  console.log('=== 楽天ペット商品 ジャンルID別全件取得 ===');
+  console.log('=== 楽天ペット商品 ジャンルID別全件取得（バッチ処理版）===');
   console.log(`対象ジャンル数: ${UNIQUE_GENRES.length}`);
   console.log(`開始: ${new Date().toLocaleString('ja-JP')}\n`);
 
@@ -275,23 +280,25 @@ async function main() {
     const first = await fetchPage(genreId, 1);
     if (first.items.length === 0) { console.log('  0件'); continue; }
 
-    const maxPage = Math.min(first.pageCount, 100);
-    let genreTotal = await upsertItems(first.items, category);
-    console.log(`  p1/${maxPage}: ${first.items.length}件`);
+    // 最大50ページ（1500件）に制限してタイムアウト防止
+    const maxPage = Math.min(first.pageCount, 50);
+    let genreTotal = await batchUpsertItems(first.items, category);
+    console.log(`  p1/${maxPage}: ${first.items.length}件 → DB登録${genreTotal}件`);
 
     for (let page = 2; page <= maxPage; page++) {
-      await sleep(500);
+      await sleep(300); // 500ms → 300msに短縮
       const { items } = await fetchPage(genreId, page);
       if (items.length === 0) break;
-      genreTotal += await upsertItems(items, category);
-      if (page % 20 === 0) {
+      const cnt = await batchUpsertItems(items, category);
+      genreTotal += cnt;
+      if (page % 10 === 0) {
         console.log(`  p${page}/${maxPage}: 累計${genreTotal.toLocaleString()}件`);
       }
     }
 
     grandTotal += genreTotal;
     console.log(`  ✓ 完了: ${genreTotal.toLocaleString()}件 (累計 ${grandTotal.toLocaleString()}件)`);
-    await sleep(1000); // ジャンル間インターバル
+    await sleep(500); // ジャンル間インターバル 1000ms → 500msに短縮
   }
 
   console.log(`\n${'='.repeat(50)}`);

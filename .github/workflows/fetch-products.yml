@@ -1,21 +1,25 @@
 name: Fetch Rakuten Products
 on:
   schedule:
-    - cron: '0 18 * * *'
+    - cron: '0 18 * * *'  # 毎日JST 3:00に実行
   workflow_dispatch:
 jobs:
   fetch:
     runs-on: ubuntu-latest
+    timeout-minutes: 180  # 3時間タイムアウト（バッチ化で大幅短縮見込み）
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: npm ci
-      - run: npx tsx scripts/fetch-rakuten.ts
+      - name: Install dependencies
+        run: npm ci
+      - name: Fetch all Rakuten products
+        run: npx tsx scripts/fetch-rakuten.ts
         env:
           RAKUTEN_APP_ID: ${{ secrets.RAKUTEN_APP_ID }}
           RAKUTEN_AFFILIATE_ID: ${{ secrets.RAKUTEN_AFFILIATE_ID }}
           RAKUTEN_ACCESS_KEY: ${{ secrets.RAKUTEN_ACCESS_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
