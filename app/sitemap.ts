@@ -1,6 +1,10 @@
 import { MetadataRoute } from 'next';
 import { supabase } from '@/lib/supabase';
 
+// サイトマップはビルド時ではなくリクエスト時に生成（タイムアウト回避）
+export const dynamic = 'force-dynamic';
+export const revalidate = 3600; // 1時間キャッシュ
+
 const CATEGORIES = [
   'dog-food', 'dog-snack', 'dog-walk', 'dog-care', 'dog-goods',
   'cat-food', 'cat-snack', 'cat-toilet', 'cat-tower', 'cat-care', 'cat-goods',
@@ -14,7 +18,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .from('products')
     .select('id, updated_at')
     .order('review_count', { ascending: false })
-    .limit(5000);
+    .limit(2000); // 5000→2000に削減してタイムアウト回避
 
   const productUrls: MetadataRoute.Sitemap = (products || []).map((p: { id: string; updated_at: string }) => ({
     url: `${baseUrl}/product/${p.id}`,
