@@ -19,8 +19,10 @@ interface MallResult {
 
 async function fetchYahooPrice(productName: string): Promise<{ price: number | null; keyword: string }> {
   try {
-    // 商品名全体をサーバーに送り、サーバー側でキーワード最適化する
-    const res = await fetch(`/api/yahoo-price?q=${encodeURIComponent(productName)}`);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(`/api/yahoo-price?q=${encodeURIComponent(productName)}`, { signal: controller.signal });
+    clearTimeout(timeoutId);
     if (!res.ok) return { price: null, keyword: productName.slice(0, 30) };
     const json = await res.json();
     return { price: json?.price ?? null, keyword: json?.keyword ?? productName.slice(0, 30) };

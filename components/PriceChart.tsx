@@ -25,6 +25,15 @@ interface PriceChartProps {
 }
 
 export default function PriceChart({ history }: PriceChartProps) {
+  if (history.length === 0) {
+    return (
+      <div className="bg-white rounded-xl p-4 shadow">
+        <h3 className="text-sm font-semibold text-gray-600 mb-3">過去30日間の価格推移</h3>
+        <p className="text-xs text-gray-400 text-center py-6">価格データがありません</p>
+      </div>
+    );
+  }
+
   const minPrice = Math.min(...history.map((h) => h.price));
 
   const labels = history.map((h) =>

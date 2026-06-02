@@ -6,6 +6,7 @@ import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
 import { InlineFoodAd, MogwanBanner320x50 } from '@/components/A8Ads';
 
+
 // ──────────────────────────────────────────
 // 保険プランデータ（2025年調査時点）
 // ──────────────────────────────────────────

@@ -1,8 +1,19 @@
+import type { Metadata } from 'next';
+import type React from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
 import { CATEGORY_CONFIG } from '@/lib/categories';
+
+export const metadata: Metadata = {
+  title: '商品比較',
+  description: 'ペット用品を最大3商品まで並べて比較。価格・内容量・1kgあたりコスト・レビューを一覧で確認できます。',
+  openGraph: {
+    title: '商品比較 | ペットプライス',
+    description: 'ペット用品を最大3商品まで並べて比較。',
+  },
+};
 
 interface PageProps {
   searchParams: Promise<{ ids?: string }>;
@@ -180,9 +191,17 @@ export default async function ComparePage({ searchParams }: PageProps) {
           {products.length === 0 ? (
             <div className="p-8 text-center">
               <p className="text-4xl mb-3">⚖️</p>
-              <p className="text-sm text-[#666] mb-2">比較する商品がありません</p>
-              <p className="text-xs text-[#999] mb-4">商品ページの「比較に追加」ボタンを押して商品を追加してください</p>
-              <Link href="/" className="text-xs bg-[#FF6600] text-white px-4 py-2 hover:bg-[#e55a00]">商品を探す</Link>
+              <p className="text-sm font-bold text-[#333] mb-2">比較する商品がありません</p>
+              <p className="text-xs text-[#666] mb-1 leading-relaxed">
+                商品ページを開いて「比較に追加」ボタンを押すと、<br />
+                ここで最大3商品を並べて比較できます。
+              </p>
+              <p className="text-xs text-[#999] mb-5">価格・内容量・1kgコスト・レビューを一覧比較</p>
+              <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                <Link href="/dog-food" className="text-xs bg-[#FF6600] text-white px-4 py-2 hover:bg-[#e55a00]">ドッグフードを探す</Link>
+                <Link href="/cat-food" className="text-xs bg-[#FF6600] text-white px-4 py-2 hover:bg-[#e55a00]">キャットフードを探す</Link>
+                <Link href="/" className="text-xs bg-white border border-[#ccc] text-[#333] px-4 py-2 hover:bg-[#f5f5f5]">トップへ戻る</Link>
+              </div>
             </div>
           ) : (
             <div className="p-4 overflow-x-auto">

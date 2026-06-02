@@ -36,13 +36,15 @@ export async function generateMetadata({ params }: PageProps) {
     openGraph: {
       title: `${product.name} | ペットプライス`,
       description: `最安値 ¥${product.current_price.toLocaleString()}（税込）`,
-      images: product.image_url ? [{ url: product.image_url, width: 400, height: 400 }] : [],
+      images: product.image_url
+        ? [{ url: product.image_url, width: 400, height: 400 }]
+        : undefined,
     },
     twitter: {
       card: 'summary',
       title: `${product.name} | ペットプライス`,
       description: `最安値 ¥${product.current_price.toLocaleString()}`,
-      images: product.image_url ? [product.image_url] : [],
+      images: product.image_url ? [product.image_url] : undefined,
     },
   };
 }
