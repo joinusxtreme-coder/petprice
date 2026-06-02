@@ -9,7 +9,8 @@ import ProductListItem from '@/components/ProductListItem';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
 import { CATEGORY_CONFIG, SIDEBAR_GROUPS, POPULAR_SEARCHES, FOOD_FEATURE_TAGS, FOOD_CATEGORIES } from '@/lib/categories';
-import { SidebarAdWidget, CatAdWidget, InlineDogFoodAd, InlineCatAd, RightColumnAd } from '@/components/A8Ads';
+import { SidebarAdWidget, CatAdWidget, InlineDogFoodAd, InlineCatAd } from '@/components/A8Ads';
+import RightColumnAd from '@/components/RightColumnAd';
 
 export { CATEGORY_CONFIG, SIDEBAR_GROUPS } from '@/lib/categories';
 
@@ -289,6 +290,18 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
           {/* サイドバー広告 */}
           {config.petType === 'cat' ? <CatAdWidget /> : <SidebarAdWidget />}
 
+          {/* ペット保険広告カード */}
+          <div className="bg-[#E8F4FD] border border-[#2196F3] p-2">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[10px] text-[#1565C0] font-bold">🛡️ PR</span>
+            </div>
+            <p className="text-xs font-bold text-[#1565C0] leading-snug">ペット保険を比較</p>
+            <p className="text-xs text-[#555] leading-relaxed mt-0.5 mb-1.5">医療費の急な出費に備えて。主要保険を一括比較。</p>
+            <a href="/insurance" className="block bg-[#2196F3] text-white text-xs font-bold px-2 py-1 text-center">
+              無料で比較 →
+            </a>
+          </div>
+
           {/* カテゴリ一覧（サブグループ付き） */}
           <div className="bg-white border border-[#ddd]">
             <div className="bg-[#f0f0f0] text-[#555] text-xs font-bold px-2 py-1.5 border-b border-[#ddd]">カテゴリ一覧</div>
@@ -502,7 +515,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
 
         {/* Right ad column */}
         <aside className="w-40 shrink-0 hidden lg:block space-y-2">
-          <RightColumnAd page={page} petType={config.petType} />
+          <RightColumnAd petType={config.petType} />
           {/* モグワン320x50バナー（縦向き表示用） */}
           <div className="bg-white border border-[#ddd] p-2 mt-2">
             <div className="flex items-center justify-between mb-1">
