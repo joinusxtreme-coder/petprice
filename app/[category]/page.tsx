@@ -9,8 +9,8 @@ import ProductListItem from '@/components/ProductListItem';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
 import { CATEGORY_CONFIG, SIDEBAR_GROUPS, POPULAR_SEARCHES, FOOD_FEATURE_TAGS, FOOD_CATEGORIES } from '@/lib/categories';
-import { SidebarAdWidget, CatAdWidget, InlineDogFoodAd, InlineCatAd } from '@/components/A8Ads';
-import RightColumnAd from '@/components/RightColumnAd';
+import { InlineDogFoodAd, InlineCatAd } from '@/components/A8Ads';
+import AdRotator from '@/components/AdRotator';
 
 export { CATEGORY_CONFIG, SIDEBAR_GROUPS } from '@/lib/categories';
 
@@ -287,20 +287,8 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
             </div>
           )}
 
-          {/* サイドバー広告 */}
-          {config.petType === 'cat' ? <CatAdWidget /> : <SidebarAdWidget />}
-
-          {/* ペット保険広告カード */}
-          <div className="bg-[#E8F4FD] border border-[#2196F3] p-2">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] text-[#1565C0] font-bold">🛡️ PR</span>
-            </div>
-            <p className="text-xs font-bold text-[#1565C0] leading-snug">ペット保険を比較</p>
-            <p className="text-xs text-[#555] leading-relaxed mt-0.5 mb-1.5">医療費の急な出費に備えて。主要保険を一括比較。</p>
-            <a href="/insurance" className="block bg-[#2196F3] text-white text-xs font-bold px-2 py-1 text-center">
-              無料で比較 →
-            </a>
-          </div>
+          {/* 左サイドバー広告（20秒ローテーション） */}
+          <AdRotator petType={config.petType} position="left" intervalSec={20} />
 
           {/* カテゴリ一覧（サブグループ付き） */}
           <div className="bg-white border border-[#ddd]">
@@ -513,17 +501,9 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
           </section>
         </main>
 
-        {/* Right ad column */}
+        {/* 右カラム広告（左とずれた25秒ローテーション） */}
         <aside className="w-40 shrink-0 hidden lg:block space-y-2">
-          <RightColumnAd petType={config.petType} />
-          {/* モグワン320x50バナー（縦向き表示用） */}
-          <div className="bg-white border border-[#ddd] p-2 mt-2">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] text-[#999] font-bold">PR</span>
-              <span className="text-[10px] text-[#999]">広告</span>
-            </div>
-            {config.petType === 'cat' ? <CatAdWidget /> : <SidebarAdWidget />}
-          </div>
+          <AdRotator petType={config.petType} position="right" intervalSec={25} />
         </aside>
       </div>
 
