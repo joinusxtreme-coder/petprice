@@ -323,6 +323,61 @@ export function DrCareOneTextLink() {
  * インライン広告（フードページ向け）
  * テキスト付き横型
  */
+// ===== 右カラム広告（ページ・カテゴリで切り替え）=====
+/**
+ * ページ番号とcategoryによって広告が切り替わる右カラム広告
+ * ページ遷移のたびに異なる広告を表示（サーバーコンポーネント対応）
+ */
+export function RightColumnAd({ page, petType }: { page: number; petType: string }) {
+  const idx = (page - 1) % 4;
+
+  if (petType === 'cat') {
+    const ads = [
+      { key: 'c0', title: '🐱 愛猫の健康を24時間見守る【Catlog】', body: '首輪型デバイスで活動量・睡眠・食事を自動記録。体調変化も見逃しません。', href: 'https://px.a8.net/svt/ejp?a8mat=4B5LK6+123RHU+4WPO+5YJRM', btnColor: '#5B9BD5', pixel: 'https://www14.a8.net/0.gif?a8mat=4B5LK6+123RHU+4WPO+5YJRM', bg: '#F0F8FF', border: '#ADD8E6' },
+      { key: 'c1', title: '🐱 体重・体調を毎日記録【Catlog Board】', body: '乗るだけで体重測定。ダイエット・体調管理に。', href: 'https://px.a8.net/svt/ejp?a8mat=4B5LK6+123RHU+4WPO+63OYA', btnColor: '#5B9BD5', pixel: 'https://www14.a8.net/0.gif?a8mat=4B5LK6+123RHU+4WPO+63OYA', bg: '#F0F8FF', border: '#ADD8E6' },
+      { key: 'c2', title: '🐕 プレミアムドッグフード『モグワン』', body: 'グレインフリー・獣医師推奨フード。', href: 'https://px.a8.net/svt/ejp?a8mat=4B5LK5+GCTQ2A+3J8+1BOTK1', btnColor: '#FF6600', pixel: 'https://www18.a8.net/0.gif?a8mat=4B5LK5+GCTQ2A+3J8+1BOTK1', bg: '#FFF9F0', border: '#FFD700' },
+      { key: 'c3', title: 'すべては猫様のために【Catlog】', body: 'スマホで愛猫の様子をいつでも確認できます。', href: 'https://px.a8.net/svt/ejp?a8mat=4B5LK6+123RHU+4WPO+5YJRM', btnColor: '#5B9BD5', pixel: 'https://www14.a8.net/0.gif?a8mat=4B5LK6+123RHU+4WPO+5YJRM', bg: '#F0F8FF', border: '#ADD8E6' },
+    ];
+    const ad = ads[idx];
+    return (
+      <div className="bg-white border border-[#ddd] p-2">
+        <div className="flex items-center justify-between mb-1.5"><span className="text-[10px] text-[#999] font-bold">PR</span><span className="text-[10px] text-[#999]">広告</span></div>
+        <div style={{ background: ad.bg, borderColor: ad.border }} className="border rounded p-3">
+          <p className="text-xs font-bold text-[#333] leading-snug">{ad.title}</p>
+          <p className="text-xs text-[#666] leading-relaxed mt-1 mb-2">{ad.body}</p>
+          <a href={ad.href} rel="nofollow" target="_blank" style={{ background: ad.btnColor }}
+             className="block text-white text-xs font-bold px-2 py-1.5 rounded text-center">詳しく見る →</a>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img width={1} height={1} src={ad.pixel} alt="" style={{ border: 0 }} />
+        </div>
+        <p className="text-[10px] text-[#999] mt-1 text-center">※アフィリエイト広告</p>
+      </div>
+    );
+  }
+
+  const dogAds = [
+    { key: 'd0', title: '🐕 プレミアムドッグフード『モグワン』', body: 'グレインフリー・チキン生肉とサーモン使用。獣医師も推奨するプレミアムフード。', href: 'https://px.a8.net/svt/ejp?a8mat=4B5LK5+GCTQ2A+3J8+1BOTK1', btnColor: '#FF6600', pixel: 'https://www18.a8.net/0.gif?a8mat=4B5LK5+GCTQ2A+3J8+1BOTK1', bg: '#FFF9F0', border: '#FFD700' },
+    { key: 'd1', title: '🐕 馬刺し専門店のドッグフード『馬肉自然づくり』', body: '添加物不使用・新鮮馬肉使用の国産ドッグフード。', href: 'https://px.a8.net/svt/ejp?a8mat=4B5LK6+13W2B6+3E6W+NVWSI', btnColor: '#8B4513', pixel: 'https://www10.a8.net/0.gif?a8mat=4B5LK6+13W2B6+3E6W+NVWSI', bg: '#FFF5E6', border: '#DEB887' },
+    { key: 'd2', title: '🐕 国産無添加ドッグフード「Dr.ケアワン」', body: '獣医師監修・国産素材100%使用の安心フード。', href: 'https://px.a8.net/svt/ejp?a8mat=4B5LK6+12P73M+3RW8+BWVTE', btnColor: '#4CAF50', pixel: 'https://www14.a8.net/0.gif?a8mat=4B5LK6+12P73M+3RW8+BWVTE', bg: '#F0FFF0', border: '#4CAF50' },
+    { key: 'd3', title: '手作りレシピを追求した犬用プレミアムフード『モグワン』', body: '鮮度の高いチキンとサーモンを贅沢に使用。愛犬が喜ぶ本格フード。', href: 'https://px.a8.net/svt/ejp?a8mat=4B5LK5+GCTQ2A+3J8+1BN3TU', btnColor: '#FF6600', pixel: 'https://www17.a8.net/0.gif?a8mat=4B5LK5+GCTQ2A+3J8+1BN3TU', bg: '#FFF9F0', border: '#FFD700' },
+  ];
+  const ad = dogAds[idx];
+  return (
+    <div className="bg-white border border-[#ddd] p-2">
+      <div className="flex items-center justify-between mb-1.5"><span className="text-[10px] text-[#999] font-bold">PR</span><span className="text-[10px] text-[#999]">広告</span></div>
+      <div style={{ background: ad.bg, borderColor: ad.border }} className="border rounded p-3">
+        <p className="text-xs font-bold text-[#333] leading-snug">{ad.title}</p>
+        <p className="text-xs text-[#666] leading-relaxed mt-1 mb-2">{ad.body}</p>
+        <a href={ad.href} rel="nofollow" target="_blank" style={{ background: ad.btnColor }}
+           className="block text-white text-xs font-bold px-2 py-1.5 rounded text-center">詳しく見る →</a>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img width={1} height={1} src={ad.pixel} alt="" style={{ border: 0 }} />
+      </div>
+      <p className="text-[10px] text-[#999] mt-1 text-center">※アフィリエイト広告</p>
+    </div>
+  );
+}
+
 export function InlineFoodAd() {
   return (
     <div className="bg-[#FFF9F0] border border-[#FFD700] rounded p-3 my-4">

@@ -9,7 +9,7 @@ import ProductListItem from '@/components/ProductListItem';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
 import { CATEGORY_CONFIG, SIDEBAR_GROUPS, POPULAR_SEARCHES, FOOD_FEATURE_TAGS, FOOD_CATEGORIES } from '@/lib/categories';
-import { SidebarAdWidget, CatAdWidget, InlineDogFoodAd, InlineCatAd } from '@/components/A8Ads';
+import { SidebarAdWidget, CatAdWidget, InlineDogFoodAd, InlineCatAd, RightColumnAd } from '@/components/A8Ads';
 
 export { CATEGORY_CONFIG, SIDEBAR_GROUPS } from '@/lib/categories';
 
@@ -184,7 +184,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-3 py-3 flex gap-3">
+      <div className="max-w-6xl mx-auto px-3 py-3 flex gap-3">
         {/* Left sidebar */}
         <aside className="w-44 shrink-0 hidden md:block space-y-2">
           {/* 全製品ボタン */}
@@ -499,6 +499,19 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
             )}
           </section>
         </main>
+
+        {/* Right ad column */}
+        <aside className="w-40 shrink-0 hidden lg:block space-y-2">
+          <RightColumnAd page={page} petType={config.petType} />
+          {/* モグワン320x50バナー（縦向き表示用） */}
+          <div className="bg-white border border-[#ddd] p-2 mt-2">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[10px] text-[#999] font-bold">PR</span>
+              <span className="text-[10px] text-[#999]">広告</span>
+            </div>
+            {config.petType === 'cat' ? <CatAdWidget /> : <SidebarAdWidget />}
+          </div>
+        </aside>
       </div>
 
       <SiteFooter />

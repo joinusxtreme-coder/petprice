@@ -61,8 +61,13 @@ const GENRE_CATEGORY: [string, string][] = [
   ['204174', 'cat-toilet'],
   // ── キャットタワー
   ['206265', 'cat-tower'],
-  // ── 猫ケア
-  // (dog-careと共通ジャンルのため省略)
+  // ── 猫おやつ（追加）
+  ['206345', 'cat-snack'],
+  ['409780', 'cat-snack'],
+  // ── 猫ケア・グルーミング（追加）
+  ['404151', 'cat-care'],
+  ['215355', 'cat-care'],
+  ['206350', 'cat-care'],
   // ── 猫おもちゃ
   ['215363', 'cat-toy'],
   ['112121', 'cat-toy'],
@@ -78,11 +83,14 @@ const GENRE_CATEGORY: [string, string][] = [
   ['404162', 'cat-carrier'],
   // ── ペットシーツ
   ['409755', 'pet-sheets'],
-  // ── 鳥のえさ
+  // ── 鳥のえさ・用品（追加）
   ['204184', 'bird-food'],
-  // ── 小動物フード
+  ['204185', 'bird-goods'],
+  ['565706', 'bird-food'],
+  // ── 小動物フード・用品（追加）
   ['565702', 'small-animal-food'],
   ['565705', 'small-animal-food'],
+  ['565703', 'small-animal-goods'],
   // ── 小動物用品
   ['565704', 'small-animal-goods'],
   // ── 熱帯魚えさ
