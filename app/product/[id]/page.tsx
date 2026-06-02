@@ -267,8 +267,39 @@ export default async function ProductPage({ params }: PageProps) {
   const displayGuaranteedAnalysis = apiSpec?.guaranteedAnalysis || '';
   const displayCatchcopy = rakutenDetail?.catchcopy || product.description || '';
 
+  const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://petprices.jp';
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: product.name,
+    ...(product.image_url ? { image: [product.image_url] } : {}),
+    ...(product.description ? { description: product.description } : {}),
+    offers: {
+      '@type': 'Offer',
+      priceCurrency: 'JPY',
+      price: product.current_price,
+      availability: 'https://schema.org/InStock',
+      url: `${BASE_URL}/product/${product.id}`,
+    },
+    ...(product.review_count > 0
+      ? {
+          aggregateRating: {
+            '@type': 'AggregateRating',
+            ratingValue: product.review_average,
+            reviewCount: product.review_count,
+            bestRating: 5,
+            worstRating: 1,
+          },
+        }
+      : {}),
+  };
+
   return (
     <div className="min-h-screen bg-[#F0F0F0]" style={{ fontFamily: 'Meiryo, "Hiragino Kaku Gothic Pro", sans-serif' }}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <RecordHistory
         id={product.id}
         name={product.name}

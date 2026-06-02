@@ -31,13 +31,13 @@ export const metadata: Metadata = {
     siteName: 'ペットプライス',
     title: 'ペットプライス | ペット用品の最安値比較',
     description: '楽天市場のドッグフード・キャットフードを毎日自動取得。30日間の価格推移グラフで最安値・買い時がわかる比較サイト。',
-    images: [{ url: `${BASE_URL}/og-default.png`, width: 1200, height: 630 }],
+    images: [],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'ペットプライス | ペット用品の最安値比較',
     description: '楽天市場のドッグフード・キャットフードを毎日自動取得。価格推移グラフで最安値がわかる比較サイト。',
-    images: [`${BASE_URL}/og-default.png`],
+    images: [],
   },
   robots: {
     index: true,

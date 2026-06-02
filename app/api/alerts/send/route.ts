@@ -29,6 +29,22 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ sent: 0 });
   }
 
+  // メールが未設定のアラートのuser_idを一括収集してauth.usersからメールを取得（N+1回避）
+  const missingEmailUserIds = [
+    ...new Set(
+      alerts
+        .filter((a) => !a.email && a.user_id)
+        .map((a) => a.user_id as string)
+    ),
+  ];
+  const userEmailMap: Record<string, string> = {};
+  for (const uid of missingEmailUserIds) {
+    const { data: userData } = await supabaseAdmin.auth.admin.getUserById(uid);
+    if (userData?.user?.email) {
+      userEmailMap[uid] = userData.user.email;
+    }
+  }
+
   let sent = 0;
 
   for (const alert of alerts) {
@@ -39,12 +55,8 @@ export async function GET(req: NextRequest) {
 
     // 目標価格以下になったら送信
     if (product.current_price <= alert.target_price) {
-      // メールアドレスを取得（未ログイン=alertのemail、ログイン済み=auth.usersから）
-      let toEmail = alert.email;
-      if (!toEmail && alert.user_id) {
-        const { data: userData } = await supabaseAdmin.auth.admin.getUserById(alert.user_id);
-        toEmail = userData?.user?.email ?? null;
-      }
+      // メールアドレスを取得（未ログイン=alertのemail、ログイン済み=事前取得済みマップから）
+      const toEmail = alert.email || (alert.user_id ? userEmailMap[alert.user_id] ?? null : null);
       if (!toEmail) continue;
 
       const res = await fetch('https://api.resend.com/emails', {

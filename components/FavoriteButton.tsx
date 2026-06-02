@@ -156,7 +156,8 @@ export default function FavoriteButton({ productId }: Props) {
           {/* デフォルト（リストなし） */}
           <button
             onClick={() => addToList(null)}
-            className={`w-full text-left px-3 py-2 hover:bg-[#FFF5EE] flex items-center gap-2 ${currentListId === null && isFavorited ? 'bg-[#FFF5EE] font-bold' : ''}`}
+            disabled={loading}
+            className={`w-full text-left px-3 py-2 hover:bg-[#FFF5EE] flex items-center gap-2 disabled:opacity-50 ${currentListId === null && isFavorited ? 'bg-[#FFF5EE] font-bold' : ''}`}
           >
             <span>❤️</span>
             <span>メインのお気に入り</span>
@@ -166,7 +167,8 @@ export default function FavoriteButton({ productId }: Props) {
             <button
               key={list.id}
               onClick={() => addToList(list.id)}
-              className={`w-full text-left px-3 py-2 hover:bg-[#FFF5EE] flex items-center gap-2 ${currentListId === list.id ? 'bg-[#FFF5EE] font-bold' : ''}`}
+              disabled={loading}
+              className={`w-full text-left px-3 py-2 hover:bg-[#FFF5EE] flex items-center gap-2 disabled:opacity-50 ${currentListId === list.id ? 'bg-[#FFF5EE] font-bold' : ''}`}
             >
               <span>{list.emoji}</span>
               <span>{list.name}</span>
@@ -175,7 +177,8 @@ export default function FavoriteButton({ productId }: Props) {
           ))}
           <button
             onClick={createAndAdd}
-            className="w-full text-left px-3 py-2 hover:bg-[#FFF5EE] flex items-center gap-2 border-t border-[#eee] text-[#0058B3]"
+            disabled={loading}
+            className="w-full text-left px-3 py-2 hover:bg-[#FFF5EE] flex items-center gap-2 border-t border-[#eee] text-[#0058B3] disabled:opacity-50"
           >
             <span>＋</span>
             <span>新しいリストを作成</span>

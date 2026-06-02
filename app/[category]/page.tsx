@@ -62,7 +62,10 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
   if (sp.age && sp.age !== 'all') query = query.eq('age_group', sp.age);
   if (sp.minReview) query = query.gte('review_average', Number(sp.minReview));
   if (sp.brand) query = query.eq('brand', sp.brand);
-  if (sp.feature) query = query.ilike('name', `%${sp.feature}%`);
+  if (sp.feature) {
+    const safeFeature = sp.feature.slice(0, 100);
+    query = query.ilike('name', `%${safeFeature}%`);
+  }
 
   if (isPricePerKgSort) {
     query = query.order('review_count', { ascending: false }).limit(200);
