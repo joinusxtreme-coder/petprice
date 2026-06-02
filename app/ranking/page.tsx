@@ -1,3 +1,5 @@
+export const revalidate = 300;
+
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { CATEGORY_CONFIG, SIDEBAR_GROUPS } from '@/lib/categories';

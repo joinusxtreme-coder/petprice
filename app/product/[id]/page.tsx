@@ -1,4 +1,5 @@
-export const dynamic = 'force-dynamic';
+// 商品ページ: 5分キャッシュ（価格は頻繁に変わらないため）
+export const revalidate = 300;
 
 import { notFound } from 'next/navigation';
 import Image from 'next/image';

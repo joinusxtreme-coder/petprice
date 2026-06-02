@@ -1,3 +1,6 @@
+// トップページ: 5分キャッシュ
+export const revalidate = 300;
+
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import ProductCard from '@/components/ProductCard';

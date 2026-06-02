@@ -1,3 +1,6 @@
+// キャッシュ: フィルタなし(ページ1)は5分、フィルタあり/ページ2以降は60秒
+export const revalidate = 60;
+
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
@@ -47,50 +50,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
   const from = (page - 1) * PAGE_SIZE;
   const isPricePerKgSort = sort === 'price_per_kg' && FOOD_CATEGORIES.includes(category);
 
-  // トップ5（注目ランキング用）
-  const { data: top5 } = await supabase
-    .from('products')
-    .select('id, name, image_url, current_price, review_count, review_average, shop_name')
-    .eq('category', config.dbCategory)
-    .order('review_count', { ascending: false })
-    .limit(5);
-
-  // 満足度ランキング（評価順）
-  const { data: ratingTop } = await supabase
-    .from('products')
-    .select('id, name, image_url, current_price, review_count, review_average, shop_name')
-    .eq('category', config.dbCategory)
-    .gte('review_count', 5)
-    .order('review_average', { ascending: false })
-    .limit(5);
-
-  // 新着商品（過去60日以内に登録/更新）
-  const since60 = new Date();
-  since60.setDate(since60.getDate() - 60);
-  const { data: newProducts } = await supabase
-    .from('products')
-    .select('id, name, image_url, current_price, review_count, review_average, shop_name')
-    .eq('category', config.dbCategory)
-    .gte('updated_at', since60.toISOString())
-    .order('updated_at', { ascending: false })
-    .limit(4);
-
-  // ブランド一覧（サイドバー用）
-  const { data: brandRows } = await supabase
-    .from('products')
-    .select('brand')
-    .eq('category', config.dbCategory)
-    .not('brand', 'is', null)
-    .neq('brand', '');
-  const brandCounts: Record<string, number> = {};
-  for (const row of brandRows || []) {
-    if (row.brand) brandCounts[row.brand] = (brandCounts[row.brand] || 0) + 1;
-  }
-  const brands = Object.entries(brandCounts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 10);
-
-  // 全製品（絞り込み・ページング）
+  // 全製品クエリ（絞り込み・ページング）
   let query = supabase
     .from('products')
     .select('id, name, image_url, current_price, review_count, review_average, shop_name', { count: 'exact' })
@@ -104,7 +64,6 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
   if (sp.feature) query = query.ilike('name', `%${sp.feature}%`);
 
   if (isPricePerKgSort) {
-    // 1kgあたり価格ソート: 大量取得してJS側でソート
     query = query.order('review_count', { ascending: false }).limit(200);
   } else if (sort === 'price_asc') query = query.order('current_price', { ascending: true });
   else if (sort === 'price_desc') query = query.order('current_price', { ascending: false });
@@ -112,7 +71,59 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
 
   if (!isPricePerKgSort) query = query.range(from, from + PAGE_SIZE - 1);
 
-  const { data: rawProducts, count } = await query;
+  // 新着商品用の日付
+  const since60 = new Date();
+  since60.setDate(since60.getDate() - 60);
+
+  // 複数クエリを並列実行（Supabaseへの接続数削減・レスポンス高速化）
+  const [
+    { data: rawProducts, count },
+    { data: top5 },
+    { data: ratingTop },
+    { data: newProducts },
+    { data: brandRows },
+  ] = await Promise.all([
+    query,
+    // トップ5（注目ランキング用）
+    supabase
+      .from('products')
+      .select('id, name, image_url, current_price, review_count, review_average, shop_name')
+      .eq('category', config.dbCategory)
+      .order('review_count', { ascending: false })
+      .limit(5),
+    // 満足度ランキング（評価順）
+    supabase
+      .from('products')
+      .select('id, name, image_url, current_price, review_count, review_average, shop_name')
+      .eq('category', config.dbCategory)
+      .gte('review_count', 5)
+      .order('review_average', { ascending: false })
+      .limit(5),
+    // 新着商品（過去60日以内）
+    supabase
+      .from('products')
+      .select('id, name, image_url, current_price, review_count, review_average, shop_name')
+      .eq('category', config.dbCategory)
+      .gte('updated_at', since60.toISOString())
+      .order('updated_at', { ascending: false })
+      .limit(4),
+    // ブランド一覧（上位50件に制限してCPU節約）
+    supabase
+      .from('products')
+      .select('brand')
+      .eq('category', config.dbCategory)
+      .not('brand', 'is', null)
+      .neq('brand', '')
+      .limit(500),
+  ]);
+
+  const brandCounts: Record<string, number> = {};
+  for (const row of brandRows || []) {
+    if (row.brand) brandCounts[row.brand] = (brandCounts[row.brand] || 0) + 1;
+  }
+  const brands = Object.entries(brandCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10);
 
   // 1kgあたり価格ソート処理
   function extractWeightKg(name: string): number {
