@@ -17,14 +17,15 @@ interface MallResult {
   badge?: string;
 }
 
-async function fetchYahooPrice(keyword: string): Promise<number | null> {
+async function fetchYahooPrice(productName: string): Promise<{ price: number | null; keyword: string }> {
   try {
-    const res = await fetch(`/api/yahoo-price?q=${encodeURIComponent(keyword)}`);
-    if (!res.ok) return null;
+    // 商品名全体をサーバーに送り、サーバー側でキーワード最適化する
+    const res = await fetch(`/api/yahoo-price?q=${encodeURIComponent(productName)}`);
+    if (!res.ok) return { price: null, keyword: productName.slice(0, 30) };
     const json = await res.json();
-    return json?.price ?? null;
+    return { price: json?.price ?? null, keyword: json?.keyword ?? productName.slice(0, 30) };
   } catch {
-    return null;
+    return { price: null, keyword: productName.slice(0, 30) };
   }
 }
 
@@ -40,21 +41,26 @@ function buildYahooUrl(keyword: string): string {
 
 export default function MultiMallPrices({ productName, rakutenPrice, rakutenUrl }: Props) {
   const [yahooPrice, setYahooPrice] = useState<number | null>(null);
+  const [searchKeyword, setSearchKeyword] = useState<string>('');
   const [loading, setLoading] = useState(true);
 
-  const cleanKeyword = productName
+  // 表示用の短いキーワード（括弧などを除去）
+  const displayKeyword = productName
     .replace(/【[^】]*】/g, '')
     .replace(/\([^)]*\)/g, '')
-    .replace(/[！!☆★♪◆▼▽]/g, '')
+    .replace(/（[^）]*）/g, '')
     .trim()
-    .slice(0, 50);
+    .slice(0, 40);
 
   useEffect(() => {
-    fetchYahooPrice(cleanKeyword).then((p) => {
-      setYahooPrice(p);
+    fetchYahooPrice(productName).then(({ price, keyword }) => {
+      setYahooPrice(price);
+      setSearchKeyword(keyword || displayKeyword);
       setLoading(false);
     });
-  }, [cleanKeyword]);
+  }, [productName, displayKeyword]);
+
+  const yahooSearchUrl = buildYahooUrl(searchKeyword || displayKeyword);
 
   const malls: MallResult[] = [
     {
@@ -70,14 +76,14 @@ export default function MultiMallPrices({ productName, rakutenPrice, rakutenUrl 
       logo: '🛍️',
       color: '#FF0033',
       price: yahooPrice,
-      url: buildYahooUrl(cleanKeyword),
+      url: yahooSearchUrl,
     },
     {
       mall: 'Amazon',
       logo: '📦',
       color: '#FF9900',
       price: null,
-      url: buildAmazonUrl(cleanKeyword),
+      url: buildAmazonUrl(displayKeyword),
     },
   ];
 
@@ -106,7 +112,7 @@ export default function MultiMallPrices({ productName, rakutenPrice, rakutenUrl 
                 <span className="bg-green-100 text-green-700 text-xs font-bold px-1.5 py-0.5">最安値候補</span>
               )}
             </div>
-            <div className="text-xs text-[#999] truncate">{cleanKeyword}</div>
+            <div className="text-xs text-[#999] truncate">{displayKeyword}</div>
           </div>
 
           <div className="shrink-0 text-right">
@@ -129,7 +135,7 @@ export default function MultiMallPrices({ productName, rakutenPrice, rakutenUrl 
         </a>
       ))}
       <p className="text-xs text-[#999] mt-1">
-        ※ Yahoo!ショッピング・Amazonは検索ページに遷移します。価格は変動します。
+        ※ Yahoo!価格は自動取得（1時間キャッシュ）。Amazonは検索ページへ遷移します。価格は変動します。
       </p>
     </div>
   );
