@@ -52,9 +52,10 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
   const isPricePerKgSort = sort === 'price_per_kg' && FOOD_CATEGORIES.includes(category);
 
   // 全製品クエリ（絞り込み・ページング）
+  // count:'estimated' で COUNT(*) フルスキャンを回避（Railway低リソース対策）
   let query = supabase
     .from('products')
-    .select('id, name, image_url, current_price, review_count, review_average, shop_name', { count: 'exact' })
+    .select('id, name, image_url, current_price, review_count, review_average, shop_name', { count: 'estimated' })
     .eq('category', config.dbCategory);
 
   if (sp.minPrice) query = query.gte('current_price', Number(sp.minPrice));
