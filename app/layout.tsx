@@ -11,6 +11,11 @@ const notoSansJP = Noto_Sans_JP({
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://petprices.jp';
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+};
+
 export const metadata: Metadata = {
   title: {
     default: "ペットプライス | ペット用品の最安値比較",
