@@ -8,7 +8,7 @@ import ProductCard from '@/components/ProductCard';
 import ProductListItem from '@/components/ProductListItem';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
-import { CATEGORY_CONFIG, SIDEBAR_GROUPS, POPULAR_SEARCHES, FOOD_FEATURE_TAGS, FOOD_CATEGORIES } from '@/lib/categories';
+import { CATEGORY_CONFIG, SIDEBAR_GROUPS, POPULAR_SEARCHES, FOOD_FEATURE_TAGS, FOOD_CATEGORIES, CATEGORY_SEO } from '@/lib/categories';
 import { InlineDogFoodAd, InlineCatAd } from '@/components/A8Ads';
 import AdRotator from '@/components/AdRotator';
 
@@ -34,9 +34,10 @@ export async function generateMetadata({ params }: PageProps) {
   const { category } = await params;
   const config = CATEGORY_CONFIG[category];
   if (!config) return {};
+  const seo = CATEGORY_SEO[category];
   return {
-    title: `${config.label} 通販・価格比較 | ペットプライス`,
-    description: `楽天市場の${config.label}を価格・レビューで比較。価格推移グラフで最安値・買い時がわかる。`,
+    title: `${config.label} 通販・最安値比較【楽天市場】 | ペットプライス`,
+    description: seo?.description || `楽天市場の${config.label}を価格・レビューで比較。価格推移グラフで最安値・買い時がわかる。`,
   };
 }
 
@@ -168,6 +169,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
 
   const isFiltered = !!(sp.minPrice || sp.maxPrice || (sp.age && sp.age !== 'all') || sp.minReview || sp.brand || sp.feature);
   const isFoodCategory = FOOD_CATEGORIES.includes(category);
+  const categorySeo = CATEGORY_SEO[category];
 
   return (
     <div className="min-h-screen bg-[#F0F0F0]" style={{ fontFamily: 'Meiryo, "Hiragino Kaku Gothic Pro", sans-serif' }}>
@@ -510,6 +512,16 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
           <AdRotator petType={config.petType} position="right" intervalSec={25} />
         </aside>
       </div>
+
+      {/* SEOテキスト（ページ下部・検索エンジン向け） */}
+      {categorySeo && !isFiltered && page === 1 && (
+        <div className="max-w-5xl mx-auto px-3 pb-6">
+          <div className="bg-white border border-[#ddd] p-4">
+            <h2 className="text-sm font-bold text-[#333] mb-2">{config.label}の価格比較について</h2>
+            <p className="text-xs text-[#666] leading-relaxed">{categorySeo.seoText}</p>
+          </div>
+        </div>
+      )}
 
       <SiteFooter />
     </div>

@@ -1,15 +1,12 @@
 import { MetadataRoute } from 'next';
 import { supabase } from '@/lib/supabase';
+import { CATEGORY_CONFIG } from '@/lib/categories';
 
 // サイトマップはビルド時ではなくリクエスト時に生成（タイムアウト回避）
 export const dynamic = 'force-dynamic';
 export const revalidate = 3600; // 1時間キャッシュ
 
-const CATEGORIES = [
-  'dog-food', 'dog-snack', 'dog-walk', 'dog-care', 'dog-goods',
-  'cat-food', 'cat-snack', 'cat-toilet', 'cat-tower', 'cat-care', 'cat-goods',
-  'pet-sheets',
-];
+const CATEGORIES = Object.keys(CATEGORY_CONFIG);
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.petprices.jp';

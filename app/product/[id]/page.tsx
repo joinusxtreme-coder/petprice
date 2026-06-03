@@ -27,22 +27,27 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps) {
   const { id } = await params;
-  const { data: product } = await supabase.from('products').select('name, current_price, image_url').eq('id', id).single();
+  const { data: product } = await supabase.from('products').select('name, current_price, image_url, review_average, review_count, brand, category').eq('id', id).single();
   if (!product) return {};
+  // タイトルは60文字以内に収める
+  const shortName = product.name.length > 55 ? product.name.slice(0, 52) + '...' : product.name;
+  const price = product.current_price.toLocaleString();
+  const stars = product.review_average > 0 ? `★${product.review_average.toFixed(1)}(${product.review_count.toLocaleString()}件)` : '';
+  const desc = `${product.name}の最安値¥${price}円。${stars ? stars + ' ' : ''}楽天・Yahoo・Amazon価格を一括比較。30日間の価格推移グラフで買い時がわかる。`;
   return {
-    title: `${product.name}の最安値・価格比較 | ペットプライス`,
-    description: `${product.name}の楽天市場最安値${product.current_price.toLocaleString()}円。30日間の価格推移グラフで買い時がわかる。`,
+    title: `${shortName}の最安値・価格比較 | ペットプライス`,
+    description: desc.slice(0, 160),
     openGraph: {
-      title: `${product.name} | ペットプライス`,
-      description: `最安値 ¥${product.current_price.toLocaleString()}（税込）`,
+      title: `${shortName} | 最安値¥${price} | ペットプライス`,
+      description: desc.slice(0, 120),
       images: product.image_url
         ? [{ url: product.image_url, width: 400, height: 400 }]
         : undefined,
     },
     twitter: {
-      card: 'summary',
-      title: `${product.name} | ペットプライス`,
-      description: `最安値 ¥${product.current_price.toLocaleString()}`,
+      card: 'summary_large_image',
+      title: `${shortName} | 最安値¥${price}`,
+      description: desc.slice(0, 120),
       images: product.image_url ? [product.image_url] : undefined,
     },
   };
@@ -266,19 +271,29 @@ export default async function ProductPage({ params }: PageProps) {
   const displayGuaranteedAnalysis = apiSpec?.guaranteedAnalysis || '';
   const displayCatchcopy = rakutenDetail?.catchcopy || product.description || '';
 
-  const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://petprices.jp';
+  const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.petprices.jp';
+  const catConfig = CATEGORY_CONFIG[product.category];
+  const productUrl = `${BASE_URL}/product/${product.id}`;
+  const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Product',
+    '@id': productUrl,
     name: product.name,
+    url: productUrl,
     ...(product.image_url ? { image: [product.image_url] } : {}),
-    ...(product.description ? { description: product.description } : {}),
+    description: displayCatchcopy || product.description || `${product.name}の最安値・価格比較`,
+    ...(product.brand ? { brand: { '@type': 'Brand', name: product.brand } } : {}),
+    ...(product.rakuten_item_id ? { sku: product.rakuten_item_id } : {}),
     offers: {
       '@type': 'Offer',
       priceCurrency: 'JPY',
       price: product.current_price,
+      priceValidUntil: tomorrow,
       availability: 'https://schema.org/InStock',
-      url: `${BASE_URL}/product/${product.id}`,
+      url: product.affiliate_url || product.item_url || productUrl,
+      seller: { '@type': 'Organization', name: product.shop_name || '楽天市場' },
     },
     ...(product.review_count > 0
       ? {
@@ -293,12 +308,20 @@ export default async function ProductPage({ params }: PageProps) {
       : {}),
   };
 
+  const breadcrumbLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'ホーム', item: BASE_URL },
+      { '@type': 'ListItem', position: 2, name: catConfig?.label || 'ペット用品', item: `${BASE_URL}/${product.category}` },
+      { '@type': 'ListItem', position: 3, name: product.name, item: productUrl },
+    ],
+  };
+
   return (
     <div className="min-h-screen bg-[#F0F0F0]" style={{ fontFamily: 'Meiryo, "Hiragino Kaku Gothic Pro", sans-serif' }}>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
       <RecordHistory
         id={product.id}
         name={product.name}
