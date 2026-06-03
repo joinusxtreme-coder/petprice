@@ -6,7 +6,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import PriceChart from '@/components/PriceChart';
-import AlertForm from '@/components/AlertForm';
 import AffiliateButton from '@/components/AffiliateButton';
 import ProductCard from '@/components/ProductCard';
 import SiteHeader from '@/components/SiteHeader';
@@ -686,15 +685,6 @@ export default async function ProductPage({ params }: PageProps) {
             </div>
           )}
 
-          {/* 価格アラート */}
-          <div className="bg-white border border-[#ddd]">
-            <div className="px-3 py-2 border-b border-[#ddd] bg-[#f8f8f8]">
-              <h2 className="text-sm font-bold text-[#333]">🔔 価格アラート設定</h2>
-            </div>
-            <div className="p-3">
-              <AlertForm productId={product.id} currentPrice={product.current_price} />
-            </div>
-          </div>
 
           {/* 定期購入シミュレーター */}
           <SubscriptionSimulator price={product.current_price} name={product.name} />

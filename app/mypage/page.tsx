@@ -9,7 +9,7 @@ import { supabaseBrowser } from '@/lib/supabase-browser';
 import SiteHeader from '@/components/SiteHeader';
 import RecentlyViewed from '@/components/RecentlyViewed';
 
-type Tab = 'profile' | 'pets' | 'favorites' | 'alerts' | 'reviews' | 'history';
+type Tab = 'profile' | 'pets' | 'favorites' | 'reviews' | 'history';
 
 interface Pet {
   id: string;
@@ -37,13 +37,6 @@ interface FavoriteItem {
     image_url: string | null;
     current_price: number;
   } | null;
-}
-
-interface AlertItem {
-  id: string;
-  target_price: number;
-  is_active: boolean;
-  products: { name: string } | null;
 }
 
 interface ReviewItem {
@@ -90,9 +83,6 @@ export default function MyPage() {
   const [favPage, setFavPage] = useState(0);
   const FAV_PER_PAGE = 10;
 
-  // Alerts
-  const [alerts, setAlerts] = useState<AlertItem[]>([]);
-
   // Reviews
   const [reviews, setReviews] = useState<ReviewItem[]>([]);
 
@@ -107,7 +97,6 @@ export default function MyPage() {
       loadProfile();
       loadPets();
       loadFavorites();
-      loadAlerts();
       loadReviews();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -213,21 +202,6 @@ export default function MyPage() {
     setFavorites((prev) => prev.filter((f) => f.id !== id));
   }
 
-  async function loadAlerts() {
-    if (!user) return;
-    const { data } = await supabaseBrowser
-      .from('price_alerts')
-      .select('id, target_price, is_active, products(name)')
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .order('created_at', { ascending: false });
-    setAlerts((data || []) as unknown as AlertItem[]);
-  }
-
-  async function deleteAlert(id: string) {
-    await supabaseBrowser.from('price_alerts').delete().eq('id', id);
-    setAlerts((prev) => prev.filter((a) => a.id !== id));
-  }
 
   async function loadReviews() {
     if (!user) return;
@@ -255,7 +229,6 @@ export default function MyPage() {
     { key: 'profile', label: 'プロフィール' },
     { key: 'pets', label: '愛ペット登録' },
     { key: 'favorites', label: 'お気に入り' },
-    { key: 'alerts', label: '価格アラート' },
     { key: 'reviews', label: 'マイレビュー' },
     { key: 'history', label: '閲覧履歴' },
   ];
@@ -480,26 +453,6 @@ export default function MyPage() {
           </div>
         )}
 
-        {tab === 'alerts' && (
-          <div className="bg-white border border-[#ddd] p-4">
-            <h2 className="text-sm font-bold text-[#333] mb-4">価格アラート一覧</h2>
-            {alerts.length === 0 ? (
-              <p className="text-xs text-[#999]">設定中のアラートはありません</p>
-            ) : (
-              <div className="space-y-2">
-                {alerts.map((a) => (
-                  <div key={a.id} className="flex items-center justify-between border border-[#eee] px-3 py-2">
-                    <div className="text-xs">
-                      <p className="text-[#333] line-clamp-1">{a.products?.name || '商品名不明'}</p>
-                      <p className="text-[#FF6600] font-bold">目標価格: ¥{a.target_price.toLocaleString()}</p>
-                    </div>
-                    <button onClick={() => deleteAlert(a.id)} className="text-xs text-red-500 hover:underline">削除</button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
 
         {tab === 'reviews' && (
           <div className="bg-white border border-[#ddd] p-4">
