@@ -10,7 +10,16 @@ const supabase = createClient(
 );
 
 const API = 'https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20220601';
-const HEADERS = { Referer: 'https://www.petprices.jp', Origin: 'https://www.petprices.jp' };
+
+// 登録ドメインが www あり/なし どちらか不明なため両方試す
+const REFERER_CANDIDATES = [
+  'https://www.petprices.jp',
+  'https://petprices.jp',
+  'http://www.petprices.jp',
+  'http://petprices.jp',
+];
+let ACTIVE_REFERER = REFERER_CANDIDATES[0];
+const HEADERS = () => ({ Referer: ACTIVE_REFERER, Origin: ACTIVE_REFERER });
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 楽天の実ジャンルID → サイトカテゴリ マッピング
@@ -167,7 +176,7 @@ interface RakutenItem {
   catchcopy?: string;
 }
 
-async function fetchPage(genreId: string, page: number): Promise<{ items: RakutenItem[]; pageCount: number }> {
+async function fetchPage(genreId: string, page: number, refererIdx = 0): Promise<{ items: RakutenItem[]; pageCount: number }> {
   const params = new URLSearchParams({
     applicationId: process.env.RAKUTEN_APP_ID!,
     accessKey: process.env.RAKUTEN_ACCESS_KEY!,
@@ -178,11 +187,22 @@ async function fetchPage(genreId: string, page: number): Promise<{ items: Rakute
     sort: '-reviewCount',
     formatVersion: '2',
   });
-  const res = await fetch(`${API}?${params}`, { headers: HEADERS });
+  const res = await fetch(`${API}?${params}`, { headers: HEADERS() });
   if (res.status === 429) {
     console.log('    ⚠ 429 レート制限 → 3秒待機');
     await sleep(3000);
-    return fetchPage(genreId, page);
+    return fetchPage(genreId, page, refererIdx);
+  }
+  if (res.status === 403) {
+    const body = await res.text();
+    if (body.includes('HTTP_REFERRER_NOT_ALLOWED') && refererIdx < REFERER_CANDIDATES.length - 1) {
+      // 別のRefererで再試行
+      ACTIVE_REFERER = REFERER_CANDIDATES[refererIdx + 1];
+      console.log(`    ⚠ Referer変更 → ${ACTIVE_REFERER}`);
+      return fetchPage(genreId, page, refererIdx + 1);
+    }
+    console.error(`    API error 403: ${body.slice(0, 150)}`);
+    return { items: [], pageCount: 0 };
   }
   if (!res.ok) {
     const body = await res.text();
