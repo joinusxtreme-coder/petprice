@@ -244,7 +244,11 @@ export default function MyPage() {
     setReviews((prev) => prev.filter((r) => r.id !== id));
   }
 
-  if (loading) return null;
+  if (loading) return (
+    <div className="min-h-screen bg-[#F0F0F0] flex items-center justify-center">
+      <p className="text-[#999] text-sm">読み込み中...</p>
+    </div>
+  );
   if (!user) return null;
 
   const tabs: { key: Tab; label: string }[] = [

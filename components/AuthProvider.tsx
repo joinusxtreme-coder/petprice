@@ -46,8 +46,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function signIn(email: string, pass: string): Promise<{ error: string | null }> {
-    const { error } = await supabaseBrowser.auth.signInWithPassword({ email, password: pass });
+    const { data, error } = await supabaseBrowser.auth.signInWithPassword({ email, password: pass });
     if (error) return { error: error.message };
+    // onAuthStateChange より先に user をセットして画面遷移のタイミングズレを防ぐ
+    if (data.session) setUser(data.session.user);
     return { error: null };
   }
 
